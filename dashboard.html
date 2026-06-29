@@ -17,26 +17,10 @@
     --accent-dim:#0a3b30;
     --danger:#ff3b5c;
     --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --sans: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     --tv-theme: dark;
     --tv-bg: #11151c;
     --tv-grid: rgba(242,242,242,0);
-  }
-  :root[data-theme="light"]{
-    --bg:#f0f2f5;
-    --panel:#ffffff;
-    --panel-2:#f7f8fa;
-    --border:#dde1e8;
-    --text:#1a1f2e;
-    --text-dim:#6b7280;
-    --accent:#00a87a;
-    --accent-dim:rgba(0,168,122,0.12);
-    --danger:#e0224a;
-    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --tv-theme: light;
-    --tv-bg: #ffffff;
-    --tv-grid: rgba(0,0,0,0);
   }
 
   *{box-sizing:border-box;}
@@ -484,7 +468,6 @@
       <span class="dot"></span>
       <h1>Watchlist</h1>
       <span class="ver">/ charts</span>
-      <button class="theme-btn" id="themeBtn" title="Tema">🌙</button>
     </div>
 
     <a class="back-btn" href="hub.html">← Hub</a>
@@ -554,24 +537,6 @@
   </main>
 
 <script>
-  /* ── THEME ── */
-  const html = document.documentElement;
-  const themeBtn = document.getElementById("themeBtn");
-  const THEME_KEY = "gb_suite_theme";
-  function applyTheme(t){
-    html.setAttribute("data-theme", t);
-    themeBtn.textContent = t === "dark" ? "🌙" : "☀️";
-    try{ localStorage.setItem(THEME_KEY, t); }catch(e){}
-    // rebuild widgets to match new theme
-    if(typeof rebuildAllWidgets === "function") rebuildAllWidgets();
-  }
-  (function initTheme(){
-    let saved; try{ saved = localStorage.getItem(THEME_KEY); }catch(e){}
-    applyTheme(saved === "light" ? "light" : "dark");
-  })();
-  themeBtn.addEventListener("click", () => {
-    applyTheme(html.getAttribute("data-theme") === "dark" ? "light" : "dark");
-  });
 
   /* ── DASHBOARD LOGIC ── */
   const STORAGE_KEY = "tv_dashboard_watchlist_v1";

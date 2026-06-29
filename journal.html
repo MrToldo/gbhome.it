@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GB-Suite</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -29,24 +29,15 @@
       --pos-bg: rgba(16,185,129,0.1); --neg: #ef4444;
       --neg-bg: rgba(239,68,68,0.1); --shadow: rgba(0,0,0,0.4);
     }
-    :root[data-theme="light"] {
-      --bg-deep: #f1f5f9; --bg-base: #ffffff; --bg-panel: #f8fafc;
-      --bg-panel-soft: rgba(0,0,0,0.015); --border-soft: rgba(0,0,0,0.08);
-      --border-strong: rgba(0,0,0,0.16); --text-hi: #0f172a;
-      --text-mid: #475569; --text-lo: #94a3b8; --brand: #2563eb;
-      --brand-glow: rgba(37,99,235,0.1); --pos: #059669;
-      --pos-bg: rgba(5,150,105,0.08); --neg: #dc2626;
-      --neg-bg: rgba(220,38,38,0.08); --shadow: rgba(0,0,0,0.05);
-    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg-deep); color: var(--text-mid); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+    body { background: var(--bg-deep); color: var(--text-mid); font-family: 'JetBrains Mono', monospace; -webkit-font-smoothing: antialiased; }
 
     /* ── PAGE WRAPPER (max width monitor curvo 34") ── */
     .page-wrapper { max-width: 1560px; margin: 0 auto; }
 
     /* ── HEADER ── */
     header { background: var(--bg-base); border-bottom: 1px solid var(--border-soft); padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; position: sticky; top:0; z-index:200; box-shadow: 0 4px 20px -5px var(--shadow); }
-    .brand-title { font-family: 'Sora', sans-serif; font-weight: 800; font-size: 18px; color: var(--text-hi); letter-spacing: -0.5px; }
+    .brand-title { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 16px; color: var(--text-hi); letter-spacing: 0.08em; text-transform: uppercase; }
     .brand-title span { color: var(--brand); }
     .nav-right { display: flex; gap: 12px; align-items: center; }
     .btn { background: var(--bg-panel); border: 1px solid var(--border-soft); color: var(--text-hi); padding: 8px 14px; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer; transition: all 0.18s; display: inline-flex; align-items: center; gap: 7px; }
@@ -66,8 +57,8 @@
       box-shadow: 0 4px 24px var(--shadow);
     }
     .import-zone-title {
-      font-family: 'Sora', sans-serif; font-weight: 700; font-size: 13px;
-      color: var(--text-hi); margin-bottom: 4px; letter-spacing: 0.3px;
+      font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px;
+      color: var(--text-hi); margin-bottom: 4px; letter-spacing: 0.06em; text-transform: uppercase;
     }
     .upload-slot {
       display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 200px;
@@ -92,7 +83,7 @@
 
     /* ── PANEL ── */
     .panel { background: var(--bg-base); border: 1px solid var(--border-soft); border-radius: 16px; padding: 24px; box-shadow: 0 4px 24px var(--shadow); overflow: hidden; }
-    .panel-title { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 15px; color: var(--text-hi); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .panel-title { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px; color: var(--text-hi); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
 
     /* ── CALENDARIO FULL WIDTH ── */
     .calendar-controls { display: flex; gap: 6px; }
@@ -148,7 +139,7 @@
     }
     .date-filter-input {
       background: var(--bg-panel); border: 1px solid var(--border-soft);
-      color: var(--text-hi); font-family: 'Inter', sans-serif; font-size: 13px;
+      color: var(--text-hi); font-family: 'JetBrains Mono', monospace; font-size: 13px;
       border-radius: 8px; padding: 7px 10px; outline: none;
       transition: border-color 0.15s; cursor: pointer;
     }
@@ -188,7 +179,7 @@
     .group-header:hover { border-color: var(--border-strong); }
     .group-chevron { font-size: 10px; color: var(--text-lo); transition: transform 0.18s; flex-shrink: 0; }
     .trade-group.open > .group-header .group-chevron { transform: rotate(90deg); }
-    .group-title { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 14px; color: var(--text-hi); }
+    .group-title { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: var(--text-hi); }
     .group-count { font-size: 11px; color: var(--text-lo); }
     .group-pnl { font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-left: auto; }
     .group-body { display: none; padding-top: 14px; }
@@ -231,7 +222,7 @@
     }
     .trade-desc { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .trade-id { font-family: 'JetBrains Mono', monospace; font-size: 11px; background: var(--bg-deep); padding: 3px 8px; border-radius: 4px; color: var(--text-lo); }
-    .trade-instrument { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 13px; color: var(--text-hi); }
+    .trade-instrument { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: var(--text-hi); }
     .trade-times { font-size: 11px; color: var(--text-lo); }
     .trade-direction { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
     .dir-long { background: var(--pos-bg); color: var(--pos); }
@@ -365,7 +356,7 @@
       padding: 22px 28px 18px; border-bottom: 1px solid var(--border-soft);
       flex-shrink: 0; position: sticky; top: 0; background: var(--bg-base); z-index: 2;
     }
-    .legend-title { font-family: 'Sora', sans-serif; font-weight: 800; font-size: 17px; color: var(--text-hi); margin-bottom: 4px; }
+    .legend-title { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 17px; color: var(--text-hi); margin-bottom: 4px; }
     .legend-subtitle { font-size: 11px; color: var(--text-lo); line-height: 1.5; }
     .legend-body { padding: 0 28px 24px; }
     .legend-section { margin-top: 24px; }
@@ -380,7 +371,7 @@
       display: flex; align-items: center; gap: 12px;
       padding: 10px 16px; border-bottom: 1px solid var(--border-soft); background: var(--bg-panel-soft);
     }
-    .legend-tag-name { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 13px; color: var(--text-hi); }
+    .legend-tag-name { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: var(--text-hi); }
     .legend-tag-type { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
     .legend-tag-type.mandatory { background: rgba(59,130,246,0.12); color: var(--brand); }
     .legend-tag-type.optional  { background: rgba(148,163,184,0.12); color: var(--text-lo); }
@@ -453,7 +444,7 @@
     .info-cell input, .info-cell select {
       background: var(--bg-deep); border: 1px solid var(--border-soft); color: var(--text-hi);
       font-size: 13px; font-weight: 600; padding: 5px 8px; border-radius: 6px; width: 100%;
-      font-family: 'Inter', sans-serif;
+      font-family: 'JetBrains Mono', monospace;
     }
     .info-cell input:focus, .info-cell select:focus { outline: none; border-color: var(--brand); }
 
@@ -568,7 +559,7 @@
       padding: 10px 14px; background: var(--bg-panel-soft);
       border-bottom: 1px solid var(--border-soft); border-radius: 12px 12px 0 0;
     }
-    .tag-stat-name { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 12px; color: var(--text-hi); }
+    .tag-stat-name { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px; color: var(--text-hi); }
     .tag-stat-body { padding: 10px 14px; display: flex; flex-direction: column; gap: 7px; }
     .tag-dist-bar {
       height: 6px; border-radius: 3px; background: var(--bg-deep);
@@ -595,7 +586,7 @@
       display: none; position: absolute; bottom: calc(100% + 7px); left: 50%;
       transform: translateX(-50%);
       background: #1a2035; border: 1px solid var(--border-strong);
-      color: var(--text-mid); font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500;
+      color: var(--text-mid); font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500;
       padding: 6px 10px; border-radius: 7px; z-index: 400;
       box-shadow: 0 6px 20px rgba(0,0,0,0.5); pointer-events: none;
       max-width: 220px; white-space: normal; text-align: center; line-height: 1.4;
@@ -646,7 +637,7 @@
       background: var(--bg-panel); border: 1px solid var(--border-soft);
       color: var(--text-mid); padding: 5px 12px; border-radius: 6px;
       font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s;
-      font-family: 'Inter', sans-serif;
+      font-family: 'JetBrains Mono', monospace;
     }
     .analytics-tab-btn:hover { border-color: var(--border-strong); color: var(--text-hi); }
     .analytics-tab-btn.active { background: var(--brand-glow); border-color: var(--brand); color: var(--brand); }
@@ -797,7 +788,7 @@
     #lightboxNote {
       flex: 1; background: rgba(255,255,255,0.05);
       border: 1px solid rgba(148,163,184,0.18);
-      color: #eef2f9; font-family: 'Inter', sans-serif; font-size: 13px;
+      color: #eef2f9; font-family: 'JetBrains Mono', monospace; font-size: 13px;
       border-radius: 7px; padding: 8px 10px;
       resize: none; min-height: 52px; max-height: 120px;
       outline: none; line-height: 1.5;
@@ -849,7 +840,7 @@
       flex-shrink: 0; background: var(--bg-panel);
     }
     .ai-panel-title {
-      font-family: 'Sora', sans-serif; font-weight: 800; font-size: 15px;
+      font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 15px;
       color: var(--text-hi); display: flex; align-items: center; gap: 8px;
     }
     .ai-panel-title .ai-dot {
@@ -913,7 +904,7 @@
     .ai-bubble .ai-text { display: block; }
     .ai-msg.user .ai-bubble .ai-text { white-space: pre-wrap; }
     .ai-bubble .ai-text h2, .ai-bubble .ai-text h3, .ai-bubble .ai-text h4, .ai-bubble .ai-text h5 {
-      margin: 10px 0 4px; font-family: 'Sora', sans-serif; color: var(--text-hi); line-height: 1.3;
+      margin: 10px 0 4px; font-family: 'JetBrains Mono', monospace; color: var(--text-hi); line-height: 1.3;
     }
     .ai-bubble .ai-text h2 { font-size: 15px; } .ai-bubble .ai-text h3 { font-size: 14px; }
     .ai-bubble .ai-text h4, .ai-bubble .ai-text h5 { font-size: 13px; }
@@ -952,7 +943,7 @@
     }
     #aiInput {
       flex: 1; background: var(--bg-panel); border: 1px solid var(--border-soft);
-      color: var(--text-hi); font-family: 'Inter', sans-serif; font-size: 13px;
+      color: var(--text-hi); font-family: 'JetBrains Mono', monospace; font-size: 13px;
       border-radius: 10px; padding: 9px 12px; resize: none; outline: none;
       max-height: 120px; min-height: 40px; line-height: 1.5; transition: border-color 0.15s;
     }
@@ -973,7 +964,7 @@
       justify-content: center; gap: 10px; padding: 30px 20px; text-align: center;
     }
     .ai-empty-icon { font-size: 36px; opacity: 0.5; }
-    .ai-empty-title { font-family:'Sora',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi); }
+    .ai-empty-title { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px; color:var(--text-hi); }
     .ai-empty-sub { font-size:12px; color:var(--text-lo); line-height:1.5; }
 
     /* Overlay scuro quando il panel è aperto su schermi piccoli */
@@ -1046,7 +1037,7 @@
       background: var(--bg-panel); flex-shrink: 0;
     }
     .trade-ai-modal-title {
-      font-family: 'Sora', sans-serif; font-weight: 800; font-size: 14px;
+      font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 14px;
       color: var(--text-hi); display: flex; align-items: center; gap: 8px;
     }
     .trade-ai-modal-close {
@@ -1080,7 +1071,7 @@
     }
     #tradeAiInput {
       flex: 1; background: var(--bg-panel); border: 1px solid var(--border-soft);
-      color: var(--text-hi); font-family: 'Inter', sans-serif; font-size: 13px;
+      color: var(--text-hi); font-family: 'JetBrains Mono', monospace; font-size: 13px;
       border-radius: 10px; padding: 9px 12px; resize: none; outline: none;
       max-height: 100px; min-height: 38px; line-height: 1.5; transition: border-color 0.15s;
     }
@@ -1119,7 +1110,7 @@
       background: var(--bg-panel); flex-shrink: 0;
     }
     .diary-modal-title {
-      font-family: 'Sora', sans-serif; font-weight: 800; font-size: 14px;
+      font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 14px;
       color: var(--text-hi); display: flex; align-items: center; gap: 8px;
     }
     .diary-modal-close {
@@ -1151,7 +1142,7 @@
     }
     #diaryNoteText {
       width: 100%; background: var(--bg-panel); border: 1px solid var(--border-soft);
-      color: var(--text-hi); font-family: 'Inter', sans-serif; font-size: 13px;
+      color: var(--text-hi); font-family: 'JetBrains Mono', monospace; font-size: 13px;
       border-radius: 10px; padding: 12px 14px; resize: vertical;
       min-height: 130px; max-height: 320px; outline: none; line-height: 1.6;
       transition: border-color 0.15s;
@@ -1199,7 +1190,7 @@
       background: var(--bg-panel); flex-shrink: 0;
     }
     .report-modal-title {
-      font-family: 'Sora', sans-serif; font-weight: 800; font-size: 14px;
+      font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 14px;
       color: var(--text-hi); display: flex; align-items: center; gap: 8px;
     }
     .report-modal-close {
@@ -1219,11 +1210,10 @@
     }
     #reportMonthPicker {
       background: var(--bg-panel); border: 1px solid var(--border-soft);
-      color: var(--text-hi); font-family: 'Inter', sans-serif; font-size: 13px;
+      color: var(--text-hi); font-family: 'JetBrains Mono', monospace; font-size: 13px;
       border-radius: 8px; padding: 7px 10px; outline: none; transition: border-color 0.15s;
       color-scheme: dark;
     }
-    :root[data-theme="light"] #reportMonthPicker { color-scheme: light; }
     #reportMonthPicker:focus { border-color: var(--brand); }
     .btn-ai-report {
       margin-left: auto; background: linear-gradient(135deg, #6366f1, #3b82f6); border: none;
@@ -1283,7 +1273,7 @@
       border-bottom: 1px solid var(--border-soft);
     }
     .memory-chat-title {
-      font-family: 'Sora', sans-serif; font-weight: 700; font-size: 13px;
+      font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px;
       color: var(--text-hi); display: flex; align-items: center; gap: 8px;
     }
     .memory-badge {
@@ -1313,7 +1303,7 @@
       background: var(--bg-panel); border: 1px solid var(--border-soft);
       color: var(--text-hi); border-radius: 12px 12px 12px 4px;
     }
-    .mem-bubble h2,.mem-bubble h3,.mem-bubble h4 { margin:8px 0 3px; font-family:'Sora',sans-serif; color:var(--text-hi); }
+    .mem-bubble h2,.mem-bubble h3,.mem-bubble h4 { margin:8px 0 3px; font-family:'JetBrains Mono',monospace; color:var(--text-hi); }
     .mem-bubble h2{font-size:14px;} .mem-bubble h3{font-size:13px;color:var(--brand);}
     .mem-bubble ul,.mem-bubble ol { margin:4px 0 4px 4px; padding-left:16px; }
     .mem-bubble li { margin:2px 0; }
@@ -1329,7 +1319,7 @@
     }
     #memoryChatInput {
       flex: 1; background: var(--bg-panel); border: 1px solid var(--border-soft);
-      color: var(--text-hi); font-family: 'Inter', sans-serif; font-size: 13px;
+      color: var(--text-hi); font-family: 'JetBrains Mono', monospace; font-size: 13px;
       border-radius: 8px; padding: 8px 11px; resize: none; outline: none;
       max-height: 100px; min-height: 36px; line-height: 1.45; transition: border-color 0.15s;
     }
@@ -1359,7 +1349,7 @@
       font-size: 13px; line-height: 1.6; color: var(--text-hi);
     }
     .report-ai-output h2, .report-ai-output h3, .report-ai-output h4, .report-ai-output h5 {
-      margin: 14px 0 6px; font-family: 'Sora', sans-serif; color: var(--text-hi); line-height: 1.3;
+      margin: 14px 0 6px; font-family: 'JetBrains Mono', monospace; color: var(--text-hi); line-height: 1.3;
     }
     .report-ai-output h2:first-child, .report-ai-output h3:first-child { margin-top: 0; }
     .report-ai-output h2 { font-size: 16px; } .report-ai-output h3 { font-size: 15px; color: var(--brand); }
@@ -1421,7 +1411,6 @@
   <div class="nav-right">
     <button class="btn" id="legendBtn">📖 Legenda</button>
     <button class="btn" id="reportBtn">📊 Report</button>
-    <button class="btn" id="themeBtn">🌙</button>
     <button id="aiToggleBtn">✦ AI Analyst</button>
   </div>
 </header>
@@ -1553,7 +1542,7 @@
   <div class="panel" id="gbScorePanel" style="display:none;">
     <div class="panel-title">
       🏆 GB Score
-      <span style="font-size:11px;font-weight:500;color:var(--text-lo);font-family:'Inter',sans-serif;">Punteggio composito di performance — 0 to 100</span>
+      <span style="font-size:11px;font-weight:500;color:var(--text-lo);font-family:'JetBrains Mono',monospace;">Punteggio composito di performance — 0 to 100</span>
     </div>
     <div id="gbScoreContent"></div>
   </div>
@@ -1568,7 +1557,7 @@
   <div class="panel" id="tagStatsPanel" style="display:none;">
     <div class="panel-title">
       🏷️ Statistiche Tag Review
-      <span style="font-size:11px;font-weight:500;color:var(--text-lo);font-family:'Inter',sans-serif;">Solo trade con tag obbligatori compilati</span>
+      <span style="font-size:11px;font-weight:500;color:var(--text-lo);font-family:'JetBrains Mono',monospace;">Solo trade con tag obbligatori compilati</span>
     </div>
     <div id="tagStatsContainer"></div>
   </div>
@@ -5057,13 +5046,6 @@ document.getElementById('tvLightbox').addEventListener('click', e => { if(e.targ
   });
 })();
 
-/* ─── THEME ─── */
-document.getElementById('themeBtn').addEventListener('click', () => {
-  const html = document.documentElement;
-  const next = html.getAttribute('data-theme')==='dark'?'light':'dark';
-  html.setAttribute('data-theme',next);
-  document.getElementById('themeBtn').textContent = next==='dark'?'🌙':'☀️';
-});
 
 /* ─── LEGENDA ─── */
 document.getElementById('legendBtn').addEventListener('click', () => {
@@ -5314,7 +5296,7 @@ document.getElementById('legendModal').addEventListener('click', e => {
         <td>${t.instrument || '--'}</td>
         <td>${t.direction || '--'}</td>
         <td>${t.qty != null ? t.qty : '--'}</td>
-        <td><span style="font-family:'Inter',sans-serif;" class="${accBadgeCls ? 'account-section-badge '+accBadgeCls : ''}" style="font-size:10px;">${accLabel}</span></td>
+        <td><span style="font-family:'JetBrains Mono',monospace;" class="${accBadgeCls ? 'account-section-badge '+accBadgeCls : ''}" style="font-size:10px;">${accLabel}</span></td>
         <td>${t.strategy || 'N/A'}</td>
         <td class="${pnlCls}">${pnlTxt}</td>
         <td style="font-family:'JetBrains Mono',monospace;font-weight:700;${tagScoreCls}">${tagScoreSign}${tagScore}pt</td>

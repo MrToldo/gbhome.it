@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GB Suite · Accesso</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Sora:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/otpauth@9/dist/otpauth.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -17,22 +17,14 @@
   --shadow:0 24px 56px -20px rgba(0,0,0,0.75);
   --error:#ff3b5c;--error-dim:rgba(255,59,92,0.12);--input-bg:#0d1018;
 }
-:root[data-theme="light"]{
-  --bg:#f0f2f5;--panel:#ffffff;--panel-2:#f7f8fa;--border:#dde1e8;
-  --text:#1a1f2e;--text-dim:#6b7280;--accent:#00a87a;
-  --accent-dim:rgba(0,168,122,0.10);--accent-glow:rgba(0,168,122,0.20);
-  --shadow:0 12px 40px -16px rgba(0,0,0,0.14);
-  --error:#e0274a;--error-dim:rgba(224,39,74,0.09);--input-bg:#f7f8fa;
-}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
-body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;transition:background .25s,color .25s;}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;display:flex;flex-direction:column;}
 
 .topbar{background:var(--panel);border-bottom:1px solid var(--border);height:60px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;}
 .brand{display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text);}
 .brand-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);}
-.theme-btn{background:var(--panel-2);border:1px solid var(--border);color:var(--text-dim);font-size:16px;width:36px;height:36px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s;}
-.theme-btn:hover{background:var(--accent-dim);border-color:var(--accent);}
+
 
 .main{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px;}
 
@@ -47,7 +39,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sa
 .step-line.done{background:var(--accent);}
 
 .card-eyebrow{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
-.card-title{font-family:'Sora','Inter',sans-serif;font-size:22px;font-weight:700;color:var(--text);line-height:1.25;}
+.card-title{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:600;color:var(--text);line-height:1.25;}
 .card-sub{margin-top:6px;font-size:13px;color:var(--text-dim);line-height:1.5;margin-bottom:24px;}
 
 .form-group{margin-bottom:16px;}
@@ -116,7 +108,6 @@ footer span{color:var(--accent);margin:0 4px;}
 
 <header class="topbar">
   <div class="brand"><span class="brand-dot"></span>GB Suite</div>
-  <button class="theme-btn" id="themeBtn">🌙</button>
 </header>
 
 <main class="main">
@@ -230,15 +221,6 @@ const APP_NAME      = 'GB Suite';
 /* ══ INIT ══ */
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-/* THEME */
-const themeBtn = document.getElementById('themeBtn');
-function applyTheme(t) {
-  document.documentElement.setAttribute('data-theme', t);
-  themeBtn.textContent = t === 'dark' ? '🌙' : '☀️';
-  try { localStorage.setItem('gb_suite_theme', t); } catch(e) {}
-}
-(function(){ let s; try { s = localStorage.getItem('gb_suite_theme'); } catch(e){} applyTheme(s === 'light' ? 'light' : 'dark'); })();
-themeBtn.addEventListener('click', () => applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
 
 /* PASSWORD TOGGLE */
 const pwInput = document.getElementById('password');

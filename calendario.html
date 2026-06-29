@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GB Suite · Calendario Economico</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root[data-theme="dark"]{
     --bg:#0b0e11;
@@ -16,19 +16,7 @@
     --text-dim:#8b94a3;
     --accent:#00d9a0;
     --accent-dim:rgba(0,217,160,0.12);
-    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    --mono:'JetBrains Mono',ui-monospace,monospace;
-  }
-  :root[data-theme="light"]{
-    --bg:#f0f2f5;
-    --panel:#ffffff;
-    --panel-2:#f7f8fa;
-    --border:#dde1e8;
-    --text:#1a1f2e;
-    --text-dim:#6b7280;
-    --accent:#00a87a;
-    --accent-dim:rgba(0,168,122,0.10);
-    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --sans:'JetBrains Mono',ui-monospace,monospace;
     --mono:'JetBrains Mono',ui-monospace,monospace;
   }
 
@@ -163,7 +151,6 @@
   </div>
   <div class="topbar-right">
     <span class="page-title">Calendario Economico</span>
-    <button class="theme-btn" id="themeBtn" title="Cambia tema">🌙</button>
   </div>
 </header>
 
@@ -204,23 +191,6 @@
     const { data: { session } } = await _sb.auth.getSession();
     if (!session) window.location.replace("login.html");
   })();
-</script>
-<script>
-  const html = document.documentElement;
-  const btn = document.getElementById("themeBtn");
-  const THEME_KEY = "gb_suite_theme";
-  function applyTheme(t){
-    html.setAttribute("data-theme", t);
-    btn.textContent = t === "dark" ? "🌙" : "☀️";
-    try{ localStorage.setItem(THEME_KEY, t); }catch(e){}
-  }
-  (function init(){
-    let saved; try{ saved = localStorage.getItem(THEME_KEY); }catch(e){}
-    applyTheme(saved === "light" ? "light" : "dark");
-  })();
-  btn.addEventListener("click", () => {
-    applyTheme(html.getAttribute("data-theme") === "dark" ? "light" : "dark");
-  });
 </script>
 </body>
 </html>
