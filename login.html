@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GB Suite · Accesso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/otpauth@9/dist/otpauth.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<style>
+:root[data-theme="dark"]{
+  --bg:#0b0e11;--panel:#11151c;--panel-2:#161b24;--border:#222831;
+  --text:#e6e9ee;--text-dim:#8b94a3;--accent:#00d9a0;
+  --accent-dim:rgba(0,217,160,0.12);--accent-glow:rgba(0,217,160,0.25);
+  --shadow:0 24px 56px -20px rgba(0,0,0,0.75);
+  --error:#ff3b5c;--error-dim:rgba(255,59,92,0.12);--input-bg:#0d1018;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;display:flex;flex-direction:column;}
+
+.topbar{background:var(--panel);border-bottom:1px solid var(--border);height:60px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;}
+.brand{display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text);}
+.brand-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);}
+
+
+.main{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px;}
+
+.login-card{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:40px 36px 36px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.login-card::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:var(--accent-glow);filter:blur(60px);pointer-events:none;}
+
+.steps{display:flex;align-items:center;margin-bottom:28px;}
+.step-dot{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--text-dim);background:var(--panel-2);transition:all .25s;flex-shrink:0;}
+.step-dot.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);box-shadow:0 0 0 3px var(--accent-dim);}
+.step-dot.done{border-color:var(--accent);background:var(--accent);color:var(--bg);}
+.step-line{flex:1;height:1.5px;background:var(--border);margin:0 6px;transition:background .4s;}
+.step-line.done{background:var(--accent);}
+
+.card-eyebrow{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+.card-title{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:600;color:var(--text);line-height:1.25;}
+.card-sub{margin-top:6px;font-size:13px;color:var(--text-dim);line-height:1.5;margin-bottom:24px;}
+
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-dim);margin-bottom:7px;}
+.form-input{width:100%;background:var(--input-bg);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-family:inherit;font-size:14px;color:var(--text);transition:border-color .2s,box-shadow .2s;outline:none;}
+.form-input::placeholder{color:var(--text-dim);opacity:.6;}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+.pw-wrap{position:relative;}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-dim);padding:4px;display:flex;align-items:center;transition:color .2s;}
+.pw-toggle:hover{color:var(--accent);}
+
+.otp-row{display:flex;gap:8px;justify-content:center;margin-top:4px;}
+.otp-cell{width:46px;height:54px;border-radius:10px;border:1.5px solid var(--border);background:var(--input-bg);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;text-align:center;outline:none;transition:border-color .2s,box-shadow .2s;caret-color:var(--accent);}
+.otp-cell:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+.otp-cell.error{border-color:var(--error);box-shadow:0 0 0 3px var(--error-dim);}
+
+.alert{border-radius:9px;padding:10px 14px;font-size:13px;display:none;align-items:flex-start;gap:8px;margin-bottom:16px;line-height:1.45;}
+.alert.error{display:flex;background:var(--error-dim);border:1px solid var(--error);color:var(--error);}
+.alert.info{display:flex;background:var(--accent-dim);border:1px solid rgba(0,217,160,.3);color:var(--accent);}
+
+.btn{width:100%;padding:13px 20px;border-radius:10px;border:none;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .15s;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;}
+.btn-primary{background:var(--accent);color:#0b0e11;}
+.btn-primary:hover:not(:disabled){opacity:.9;transform:translateY(-1px);}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--text-dim);}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+
+.spinner{width:16px;height:16px;border:2px solid rgba(0,0,0,.2);border-top-color:#0b0e11;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* QR */
+.qr-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 0 8px;}
+#qrDiv{width:160px;height:160px;background:#fff;border-radius:12px;padding:8px;display:flex;align-items:center;justify-content:center;}
+#qrDiv img,#qrDiv canvas{width:100%!important;height:100%!important;}
+.secret-box{background:var(--panel-2);border:1px dashed var(--border);border-radius:8px;padding:9px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--accent);letter-spacing:.08em;text-align:center;word-break:break-all;cursor:pointer;transition:border-color .2s;width:100%;}
+.secret-box:hover{border-color:var(--accent);}
+.setup-steps{font-size:12.5px;color:var(--text-dim);line-height:1.65;padding-left:18px;margin:10px 0 4px;}
+.setup-steps li{margin-bottom:3px;}
+.setup-steps li strong{color:var(--text);font-weight:600;}
+
+.divider{display:flex;align-items:center;gap:10px;margin:10px 0 4px;color:var(--text-dim);font-size:11px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.otp-hint{text-align:center;font-size:12px;color:var(--text-dim);margin-top:14px;line-height:1.5;}
+.otp-hint a{color:var(--accent);text-decoration:none;}
+
+.success-wrap{text-align:center;padding:16px 0 8px;}
+.success-icon{width:60px;height:60px;border-radius:50%;background:var(--accent-dim);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;}
+.progress-bar-bg{margin-top:24px;width:100%;height:3px;background:var(--border);border-radius:3px;overflow:hidden;}
+#progressBar{height:100%;width:0%;background:var(--accent);border-radius:3px;transition:width 2.5s linear;}
+
+.step-panel{display:none;}
+.step-panel.active{display:block;}
+
+footer{text-align:center;padding:20px 24px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.06em;color:var(--text-dim);}
+footer span{color:var(--accent);margin:0 4px;}
+
+@media(max-width:480px){
+  .login-card{padding:28px 20px 24px;border-radius:16px;}
+  .otp-cell{width:40px;height:48px;font-size:20px;}
+  .topbar{padding:0 20px;}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="brand-dot"></span>GB Suite</div>
+</header>
+
+<main class="main">
+  <div class="login-card">
+
+    <div class="steps">
+      <div class="step-dot active" id="s1">1</div>
+      <div class="step-line" id="l1"></div>
+      <div class="step-dot" id="s2">2</div>
+      <div class="step-line" id="l2"></div>
+      <div class="step-dot" id="s3">✓</div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="step-panel active" id="panelLogin">
+      <div class="card-eyebrow">Accesso</div>
+      <div class="card-title">Bentornato</div>
+      <div class="card-sub">Inserisci le credenziali per accedere a GB Suite.</div>
+      <div class="alert" id="alertLogin"></div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="email" placeholder="nome@email.com" autocomplete="username" autofocus>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="pw-wrap">
+          <input class="form-input" type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+          <button class="pw-toggle" id="pwToggle" type="button" tabindex="-1">
+            <svg id="eyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btnLogin"><span id="btnLoginText">Accedi</span></button>
+    </div>
+
+    <!-- STEP 2a: SETUP -->
+    <div class="step-panel" id="panelSetup">
+      <div class="card-eyebrow">Configura 2FA</div>
+      <div class="card-title">Attiva l'autenticazione</div>
+      <div class="card-sub">Scansiona il QR con la tua estensione authenticator.</div>
+      <div class="alert" id="alertSetup"></div>
+      <div class="qr-wrap">
+        <div id="qrDiv"></div>
+        <div class="secret-box" id="secretBox" onclick="copySecret()" title="Clicca per copiare"></div>
+      </div>
+      <ol class="setup-steps">
+        <li>Apri la tua <strong>estensione Authenticator</strong></li>
+        <li>Scansiona il QR oppure inserisci il codice manuale</li>
+        <li>Inserisci il codice a 6 cifre generato dall'app</li>
+      </ol>
+      <div class="form-group" style="margin-top:14px;">
+        <label class="form-label">Codice di verifica</label>
+        <div class="otp-row" id="setupOtpRow">
+          <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
+          <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
+          <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
+          <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
+          <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
+          <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btnSetup" disabled><span id="btnSetupText">Attiva e accedi</span></button>
+    </div>
+
+    <!-- STEP 2b: VERIFICA -->
+    <div class="step-panel" id="panel2FA">
+      <div class="card-eyebrow">Verifica 2FA</div>
+      <div class="card-title">Codice di accesso</div>
+      <div class="card-sub">Apri la tua estensione authenticator e inserisci il codice.</div>
+      <div class="alert" id="alert2FA"></div>
+      <div class="otp-row" id="otpRow">
+        <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code">
+        <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
+        <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
+        <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
+        <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
+        <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
+      </div>
+      <button class="btn btn-primary" id="btn2FA" style="margin-top:20px;" disabled><span id="btn2FAText">Verifica</span></button>
+      <div class="otp-hint">Problemi? <a href="mailto:support@gbhome.it">Contatta il supporto</a></div>
+      <div class="divider" style="margin-top:16px;"></div>
+      <button class="btn btn-ghost" id="btnBackLogin" style="margin-top:0;">← Torna al login</button>
+    </div>
+
+    <!-- STEP 3: SUCCESS -->
+    <div class="step-panel" id="panelSuccess">
+      <div class="success-wrap">
+        <div class="success-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="card-title" style="font-size:20px;">Accesso effettuato</div>
+        <div class="card-sub" style="margin-top:8px;">Reindirizzamento in corso…</div>
+        <div class="progress-bar-bg"><div id="progressBar"></div></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>GB Suite <span>·</span> 2026 <span>·</span> gbhome.it</footer>
+
+<script>
+/* ══ CONFIG — sostituisci con i tuoi valori ══ */
+const SUPABASE_URL  = 'https://wgyjsnvygmxfheiubfjo.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndneWpzbnZ5Z214ZmhlaXViZmpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4Njg1NzQsImV4cCI6MjA5NzQ0NDU3NH0.bgb3wAgYQt6omORw47MNgW6VYVITRdj5v6R68FeXsSY';
+const HUB_URL       = 'hub.html';
+const APP_NAME      = 'GB Suite';
+
+/* ══ INIT ══ */
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+
+/* PASSWORD TOGGLE */
+const pwInput = document.getElementById('password');
+document.getElementById('pwToggle').addEventListener('click', () => {
+  const show = pwInput.type === 'password';
+  pwInput.type = show ? 'text' : 'password';
+  document.getElementById('eyeIcon').innerHTML = show
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+});
+
+/* PANELS */
+function showPanel(id) { document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function setStep(n) {
+  ['s1','s2','s3'].forEach((id,i) => {
+    const el = document.getElementById(id);
+    el.classList.remove('active','done');
+    if (i+1 < n) el.classList.add('done');
+    if (i+1 === n) el.classList.add('active');
+  });
+  ['l1','l2'].forEach((id,i) => document.getElementById(id).classList.toggle('done', i+1 < n));
+}
+
+/* ALERT */
+function showAlert(id, msg, type='error') { const el=document.getElementById(id); el.className=`alert ${type}`; el.textContent=msg; }
+function hideAlert(id) { const el=document.getElementById(id); el.className='alert'; el.textContent=''; }
+
+/* BTN LOADING */
+function setLoading(btnId, textId, loading, label) {
+  document.getElementById(btnId).disabled = loading;
+  document.getElementById(textId).innerHTML = loading ? `<div class="spinner"></div> ${label}` : label;
+}
+
+/* OTP CELLS */
+function wireOtp(rowId, btnId) {
+  const cells = Array.from(document.getElementById(rowId).querySelectorAll('.otp-cell'));
+  const btn   = btnId ? document.getElementById(btnId) : null;
+  const getCode = () => cells.map(c => c.value).join('');
+  const check   = () => { if(btn) btn.disabled = getCode().length < 6; };
+  cells.forEach((cell, i) => {
+    cell.addEventListener('input', () => {
+      cell.value = cell.value.replace(/\D/g,'').slice(-1);
+      if (cell.value && i < cells.length-1) cells[i+1].focus();
+      check();
+    });
+    cell.addEventListener('keydown', e => {
+      if (e.key==='Backspace' && !cell.value && i>0) cells[i-1].focus();
+      if (e.key==='ArrowLeft' && i>0) cells[i-1].focus();
+      if (e.key==='ArrowRight' && i<cells.length-1) cells[i+1].focus();
+      if (e.key==='Enter' && getCode().length===6 && btnId) document.getElementById(btnId).click();
+    });
+    cell.addEventListener('paste', e => {
+      e.preventDefault();
+      const txt = (e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'');
+      cells.forEach((c,j) => c.value = txt[j]||'');
+      cells[Math.min(txt.length, cells.length-1)].focus();
+      check();
+    });
+    cell.addEventListener('focus', () => cell.select());
+  });
+  return {
+    getCode,
+    reset()      { cells.forEach(c => { c.value=''; c.classList.remove('error'); }); if(btn) btn.disabled=true; cells[0].focus(); },
+    setError()   { cells.forEach(c => c.classList.add('error')); },
+    clearError() { cells.forEach(c => c.classList.remove('error')); },
+  };
+}
+const otp2FA   = wireOtp('otpRow', 'btn2FA');
+const otpSetup = wireOtp('setupOtpRow', 'btnSetup');
+
+/* ══ TOTP ══ */
+function generateSecret() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const arr   = new Uint8Array(20);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b => chars[b%32]).join('');
+}
+function verifyTOTP(secret, code) {
+  try {
+    const totp = new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(secret), digits:6, period:30 });
+    return totp.validate({ token: code, window: 1 }) !== null;
+  } catch(e) { return false; }
+}
+function buildOtpUrl(secret, email) {
+  return new OTPAuth.TOTP({ issuer:APP_NAME, label:email, secret:OTPAuth.Secret.fromBase32(secret), digits:6, period:30 }).toString();
+}
+
+/* ══ SUPABASE DB ══ */
+async function getProfile(uid) {
+  const { data, error } = await sb.from('profiles').select('totp_secret,totp_enabled').eq('id', uid).single();
+  if (error && error.code !== 'PGRST116') throw error;
+  return data;
+}
+async function saveSecret(uid, secret) {
+  const { error } = await sb.from('profiles').upsert({ id:uid, totp_secret:secret, totp_enabled:false }, { onConflict:'id' });
+  if (error) throw error;
+}
+async function enableTotp(uid) {
+  const { error } = await sb.from('profiles').update({ totp_enabled:true }).eq('id', uid);
+  if (error) throw error;
+}
+
+/* ══ STEP 1: LOGIN ══ */
+let currentUser   = null;
+let pendingSecret = null;
+
+document.getElementById('email').addEventListener('keydown',    e => { if(e.key==='Enter') document.getElementById('password').focus(); });
+document.getElementById('password').addEventListener('keydown', e => { if(e.key==='Enter') handleLogin(); });
+document.getElementById('btnLogin').addEventListener('click', handleLogin);
+
+async function handleLogin() {
+  hideAlert('alertLogin');
+  const email = document.getElementById('email').value.trim();
+  const pass  = document.getElementById('password').value;
+  if (!email || !pass) { showAlert('alertLogin','Inserisci email e password.'); return; }
+
+  setLoading('btnLogin','btnLoginText', true, 'Accesso…');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+
+  if (error) {
+    setLoading('btnLogin','btnLoginText', false, 'Accedi');
+    showAlert('alertLogin', tradErr(error.message));
+    return;
+  }
+
+  currentUser = data.user;
+  let profile = null;
+  try { profile = await getProfile(currentUser.id); } catch(e) {}
+  setLoading('btnLogin','btnLoginText', false, 'Accedi');
+
+  if (profile?.totp_enabled && profile?.totp_secret) {
+    setStep(2); showPanel('panel2FA'); otp2FA.reset();
+  } else {
+    await startSetup2FA(currentUser);
+  }
+}
+
+/* ══ STEP 2a: SETUP ══ */
+async function startSetup2FA(user) {
+  setStep(2); showPanel('panelSetup'); hideAlert('alertSetup'); otpSetup.reset();
+
+  pendingSecret = generateSecret();
+  try { await saveSecret(user.id, pendingSecret); }
+  catch(e) { showPanel('panelLogin'); setStep(1); showAlert('alertLogin','Errore salvataggio 2FA: '+e.message); return; }
+
+  // Genera QR
+  const otpUrl = buildOtpUrl(pendingSecret, user.email);
+  const qrDiv  = document.getElementById('qrDiv');
+  qrDiv.innerHTML = '';
+  new QRCode(qrDiv, { text: otpUrl, width: 144, height: 144, colorDark:'#000000', colorLight:'#ffffff' });
+
+  document.getElementById('secretBox').textContent = pendingSecret;
+}
+
+function copySecret() {
+  const s = document.getElementById('secretBox').textContent;
+  navigator.clipboard?.writeText(s).then(() => {
+    document.getElementById('secretBox').textContent = 'Copiato ✓';
+    setTimeout(() => { document.getElementById('secretBox').textContent = s; }, 1500);
+  });
+}
+
+document.getElementById('btnSetup').addEventListener('click', async () => {
+  hideAlert('alertSetup'); otpSetup.clearError();
+  const code = otpSetup.getCode();
+  if (!verifyTOTP(pendingSecret, code)) {
+    otpSetup.setError();
+    showAlert('alertSetup','Codice non valido. Controlla l\'app e riprova.');
+    otpSetup.reset(); return;
+  }
+  setLoading('btnSetup','btnSetupText', true, 'Attivazione…');
+  try { await enableTotp(currentUser.id); goToSuccess(); }
+  catch(e) { setLoading('btnSetup','btnSetupText', false, 'Attiva e accedi'); showAlert('alertSetup','Errore: '+e.message); }
+});
+
+/* ══ STEP 2b: VERIFICA ══ */
+document.getElementById('btn2FA').addEventListener('click', handle2FA);
+
+async function handle2FA() {
+  hideAlert('alert2FA'); otp2FA.clearError();
+  setLoading('btn2FA','btn2FAText', true, 'Verifica…');
+  let profile;
+  try { profile = await getProfile(currentUser.id); }
+  catch(e) { setLoading('btn2FA','btn2FAText', false, 'Verifica'); showAlert('alert2FA','Errore lettura profilo.'); return; }
+
+  if (!verifyTOTP(profile.totp_secret, otp2FA.getCode())) {
+    setLoading('btn2FA','btn2FAText', false, 'Verifica');
+    otp2FA.setError(); otp2FA.reset();
+    showAlert('alert2FA','Codice errato o scaduto. Genera un nuovo codice dall\'estensione.');
+    return;
+  }
+  goToSuccess();
+}
+
+document.getElementById('btnBackLogin').addEventListener('click', async () => {
+  await sb.auth.signOut(); currentUser = null;
+  setStep(1); showPanel('panelLogin'); hideAlert('alertLogin');
+});
+
+/* ══ SUCCESS ══ */
+function goToSuccess() {
+  setStep(3); showPanel('panelSuccess');
+  requestAnimationFrame(() => { document.getElementById('progressBar').style.width = '100%'; });
+  setTimeout(() => { window.location.href = HUB_URL; }, 2600);
+}
+
+/* ERRORI */
+function tradErr(msg) {
+  if (!msg) return 'Errore sconosciuto.';
+  if (msg.includes('Invalid login'))       return 'Email o password non corretti.';
+  if (msg.includes('Email not confirmed')) return 'Conferma prima la tua email.';
+  if (msg.includes('Too many requests'))   return 'Troppi tentativi. Attendi qualche minuto.';
+  return msg;
+}
+
+/* SESSION CHECK */
+(async function() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  currentUser = session.user;
+  let profile;
+  try { profile = await getProfile(currentUser.id); } catch(e) {}
+  if (profile?.totp_enabled && profile?.totp_secret) {
+    setStep(2); showPanel('panel2FA'); otp2FA.reset();
+  } else {
+    await startSetup2FA(currentUser);
+  }
+})();
+</script>
+</body>
+</html>
