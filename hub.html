@@ -116,6 +116,7 @@
   .enter-4{animation-delay:.42s;}
   .enter-5{animation-delay:.54s;}
   .enter-6{animation-delay:.66s;}
+  .enter-7{animation-delay:.78s;}
 
   /* reveal su scroll */
   .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s var(--ease),transform .7s var(--ease);}
@@ -407,6 +408,30 @@
     90%{opacity:.3;}
   }
 
+  /* Card 4 — anello di allocazione che ruota + righe di journal che respirano */
+  .alloc-rotor{
+    transform-box:view-box;transform-origin:300px 130px;
+    animation:allocSpin 48s linear infinite;
+  }
+  @keyframes allocSpin{to{transform:rotate(360deg);}}
+  .alloc-seg{animation:allocPulse 4.6s ease-in-out infinite;}
+  .alloc-seg:nth-of-type(2){animation-delay:.7s;}
+  .alloc-seg:nth-of-type(3){animation-delay:1.4s;}
+  .alloc-seg:nth-of-type(4){animation-delay:2.1s;}
+  @keyframes allocPulse{
+    0%,100%{opacity:1;}
+    50%{opacity:.5;}
+  }
+  .pnl-row{
+    transform-box:fill-box;transform-origin:left center;
+    animation:rowGrow 5.4s var(--ease) infinite;
+  }
+  .pnl-row:nth-of-type(2n){animation-delay:.6s;}
+  .pnl-row:nth-of-type(3n){animation-delay:1.5s;}
+  @keyframes rowGrow{
+    0%,100%{transform:scaleX(1);}
+    50%{transform:scaleX(.88);}
+  }
   /* ── FOOTER ── */
   footer{
     padding:20px 32px;border-top:1px solid var(--border-soft);
@@ -674,7 +699,7 @@
 <section class="grid-section" style="padding-top:44px;">
   <div class="grid-head enter enter-2">
     <h2>Strumenti</h2>
-    <span class="count">3</span>
+    <span class="count">4</span>
     <span class="line"></span>
   </div>
   <div class="cards">
@@ -835,6 +860,58 @@
       </div>
     </a>
 
+    <!-- CARD 4: eToro Journal -->
+    <a class="card enter enter-6" href="etoro.html" data-tilt>
+      <div class="card-bg">
+        <svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="g4a" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#2a1d06"/>
+              <stop offset="100%" stop-color="#14100a"/>
+            </linearGradient>
+            <linearGradient id="g4b" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stop-color="#f0b429" stop-opacity="0.16"/>
+              <stop offset="100%" stop-color="#f0b429" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <rect width="400" height="260" fill="url(#g4a)"/>
+          <circle cx="300" cy="130" r="105" fill="#f0b429" fill-opacity=".06"/>
+
+          <!-- anello di allocazione del portafoglio (ruota lentamente) -->
+          <g class="alloc-rotor">
+            <g transform="rotate(-90 300 130)" fill="none" stroke-linecap="butt" stroke-width="18">
+              <circle class="alloc-seg" cx="300" cy="130" r="52" stroke="#f0b429" stroke-opacity=".85" stroke-dasharray="130.7 326.7" stroke-dashoffset="0"/>
+              <circle class="alloc-seg" cx="300" cy="130" r="52" stroke="#00d68f" stroke-opacity=".85" stroke-dasharray="81.7 326.7" stroke-dashoffset="-130.7"/>
+              <circle class="alloc-seg" cx="300" cy="130" r="52" stroke="#5b8def" stroke-opacity=".85" stroke-dasharray="65.3 326.7" stroke-dashoffset="-212.4"/>
+              <circle class="alloc-seg" cx="300" cy="130" r="52" stroke="#ff5c72" stroke-opacity=".85" stroke-dasharray="49 326.7" stroke-dashoffset="-277.7"/>
+            </g>
+          </g>
+          <circle cx="300" cy="130" r="33" fill="#14100a" fill-opacity=".82"/>
+
+          <!-- righe del journal: operazioni chiuse -->
+          <rect class="pnl-row" x="20" y="36"  width="150" height="9" rx="3" fill="#00d68f" fill-opacity=".7"/>
+          <rect class="pnl-row" x="20" y="53"  width="104" height="9" rx="3" fill="#ff5c72" fill-opacity=".62"/>
+          <rect class="pnl-row" x="20" y="70"  width="168" height="9" rx="3" fill="#00d68f" fill-opacity=".7"/>
+          <rect class="pnl-row" x="20" y="87"  width="126" height="9" rx="3" fill="#00d68f" fill-opacity=".55"/>
+          <rect class="pnl-row" x="20" y="104" width="88"  height="9" rx="3" fill="#ff5c72" fill-opacity=".62"/>
+          <rect class="pnl-row" x="20" y="121" width="158" height="9" rx="3" fill="#f0b429" fill-opacity=".7"/>
+          <rect class="pnl-row" x="20" y="138" width="112" height="9" rx="3" fill="#00d68f" fill-opacity=".7"/>
+
+          <rect x="0" y="190" width="400" height="70" fill="url(#g4b)"/>
+        </svg>
+      </div>
+      <div class="card-overlay"></div>
+      <div class="card-spot"></div>
+      <div class="card-content">
+
+        <div style="margin-top:auto;">
+          <div class="card-title">eToro Journal</div>
+          <div class="card-desc">Conto eToro in tempo reale: equity curve, drawdown, statistiche e storico operazioni, in euro al cambio del giorno.</div>
+          <div class="card-arrow" style="color:#f0b429;">Apri <span>→</span></div>
+        </div>
+      </div>
+    </a>
+
   </div>
 </section>
 
@@ -861,7 +938,7 @@
   </div>
 </div>
 
-<footer class="enter enter-6">
+<footer class="enter enter-7">
   GB Suite &nbsp;<span>·</span>&nbsp; 2026
 </footer>
 
