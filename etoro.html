@@ -619,7 +619,7 @@ async function authHeaders(){
 }
 
 /* NUOVO: timeout esplicito, altrimenti una function morta lascia la pagina appesa */
-async function api(action, extra = {}, timeoutMs = 90000){
+async function api(action, extra = {}, timeoutMs = 140000){
   const u = new URL(fnUrl());
   u.searchParams.set('action', action);
   for (const [k,v] of Object.entries(extra)) u.searchParams.set(k, v);
@@ -924,6 +924,14 @@ function renderDiag(){
   if (nothing) {
     const other = $('acctSel').value === 'real' ? 'Conto virtuale' : 'Conto reale';
     issues.push(`Il conto selezionato non ha né trade chiusi né posizioni aperte. Se operi sull'altro, cambia il selettore in alto su <b>${other}</b>.`);
+  }
+
+  /* Se una fase è scaduta, i tempi misurati dicono subito quale: si mostrano
+     accanto all'errore invece di lasciarli solo in fondo alla pagina. */
+  const scaduto = issues.some(i => i.includes('tempo massimo'));
+  if (scaduto && p.timings) {
+    issues.push('Tempi misurati lato Edge Function: ' +
+      Object.entries(p.timings).map(([k,v]) => `<code>${k} ${(v/1000).toFixed(1)}s</code>`).join(' '));
   }
 
   if (!issues.length) { box.hidden = true; box.innerHTML = ''; return; }
