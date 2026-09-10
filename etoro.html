@@ -293,15 +293,16 @@ tbody tr:last-child td{border-bottom:none;}
 
 <!-- ============ SETUP ============ -->
 <section id="setup" class="card" hidden>
-  <h2>Configurazione</h2>
-  <p class="hint">L'endpoint è la tua Supabase Edge Function <code>etoro</code>. Le chiavi eToro restano nei secrets di Supabase, non in questa pagina.</p>
-  <label for="cfgUrl">URL Edge Function</label>
-  <input id="cfgUrl" placeholder="https://xxxx.supabase.co/functions/v1/etoro" autocomplete="off">
-  <label for="cfgTok">Journal token</label>
-  <input id="cfgTok" type="password" placeholder="il valore di JOURNAL_TOKEN" autocomplete="off">
-  <div style="margin-top:14px;display:flex;gap:8px">
+  <h2>Impostazioni avanzate</h2>
+  <p class="hint">Normalmente non serve toccare nulla: la pagina usa la Edge Function <code>etoro</code> del progetto GB Suite e la sessione con cui hai fatto login. Questi campi servono solo per puntare a un altro progetto o per usare un <code>JOURNAL_TOKEN</code> al posto della sessione.</p>
+  <label for="cfgUrl">URL Edge Function (vuoto = predefinito)</label>
+  <input id="cfgUrl" placeholder="predefinito" autocomplete="off">
+  <label for="cfgTok">Journal token (opzionale)</label>
+  <input id="cfgTok" type="password" placeholder="non necessario: si usa il login" autocomplete="off">
+  <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
     <button class="primary" id="cfgSave">Salva e carica</button>
-    <button id="cfgDemo">Prova con dati demo</button>
+    <button id="cfgBack">Torna al journal</button>
+    <button id="cfgDemo">Dati demo</button>
   </div>
   <div class="err" id="cfgErr"></div>
 </section>
@@ -553,12 +554,16 @@ function showSetup(msg){
   $('cfgErr').textContent = msg || '';
 }
 
+/* URL e token sono facoltativi: vuoti significa "predefinito + sessione" */
 $('cfgSave').onclick = () => {
   const url = $('cfgUrl').value.trim().replace(/\/+$/,'');
-  if (!url) { $('cfgErr').textContent = 'Inserisci l\'URL della Edge Function.'; return; }
   store.set({ ...store.get(), url, token: $('cfgTok').value.trim(), demo:false });
   $('setup').hidden = true; $('app').hidden = false;
   load();
+};
+$('cfgBack').onclick = () => {
+  $('setup').hidden = true; $('app').hidden = false;
+  if (!STATE.raw) load();
 };
 $('cfgDemo').onclick = () => {
   store.set({ ...store.get(), demo:true });
@@ -594,17 +599,36 @@ function setStatus(kind, txt){
   $('statusTxt').textContent = txt || '';
 }
 
+/* Endpoint di default: stesso progetto Supabase del login, nessuna
+   configurazione da inserire. `store.get().url` resta come override. */
+const FN_URL = SUPABASE_URL.replace(/\/+$/,'') + '/functions/v1/etoro';
+const fnUrl = () => (store.get().url || FN_URL);
+
+/* Autorizzazione: si riusa la sessione con cui sei gia' entrato in GB Suite.
+   Nessun token da digitare; se scade, supabase-js lo rinnova da solo. */
+async function authHeaders(){
+  const c = store.get();
+  if (c.token) return { 'x-journal-token': c.token };   // override manuale
+  try {
+    const { data:{ session } } = await window.__sb.auth.getSession();
+    if (session?.access_token) {
+      return { authorization: 'Bearer ' + session.access_token, apikey: SUPABASE_ANON };
+    }
+  } catch {}
+  return {};
+}
+
 /* NUOVO: timeout esplicito, altrimenti una function morta lascia la pagina appesa */
 async function api(action, extra = {}, timeoutMs = 90000){
-  const c = store.get();
-  const u = new URL(c.url);
+  const u = new URL(fnUrl());
   u.searchParams.set('action', action);
   for (const [k,v] of Object.entries(extra)) u.searchParams.set(k, v);
+  const headers = await authHeaders();
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   let res;
   try {
-    res = await fetch(u, { headers: c.token ? { 'x-journal-token': c.token } : {}, signal: ctrl.signal });
+    res = await fetch(u, { headers, signal: ctrl.signal });
   } catch (e) {
     throw new Error(e.name === 'AbortError'
       ? `La Edge Function non ha risposto entro ${Math.round(timeoutMs/1000)} s (azione "${action}").`
@@ -658,7 +682,6 @@ async function resolveNames(gen){
 
 async function load(){
   const c = store.get();
-  if (!c.demo && !c.url) return showSetup('');
   const gen = ++STATE.gen;      // invalida eventuali cicli in volo
   STATE.namesDone = false;
   clearInterval(STATE.timer);
@@ -695,12 +718,11 @@ async function load(){
     setStatus('err', 'Errore');
     /* NUOVO: se la pagina ha gia' dati non si torna alla configurazione,
        l'errore va nel banner e resta visibile quello che era caricato */
-    if (STATE.raw) {
-      $('diag').hidden = false;
-      $('diag').innerHTML = `<div class="banner crit"><b>Aggiornamento fallito</b><ul><li>${e.message}</li></ul></div>`;
-    } else {
-      showSetup('Caricamento fallito:\n' + e.message);
-    }
+    /* L'errore resta nel journal: non c'e' piu' nulla da configurare a mano */
+    $('app').hidden = false;
+    $('diag').hidden = false;
+    $('diag').innerHTML = `<div class="banner crit"><b>Caricamento fallito</b><ul><li>${e.message}</li>` +
+      `<li>Se il problema persiste, apri <b>Config</b> per le impostazioni avanzate o riprova dopo aver rifatto il login.</li></ul></div>`;
   }
 }
 
@@ -1303,8 +1325,9 @@ function demoPayload(minDate, maxDate){
   if (c.range) $('rangeSel').value = c.range;
   if (c.account) $('acctSel').value = c.account;
   if (c.currency != null) $('curSel').value = c.currency;
-  if (c.url || c.demo) { $('app').hidden = false; load(); }
-  else showSetup('');
+  /* Si parte sempre dal journal: endpoint e credenziali arrivano da soli */
+  $('app').hidden = false;
+  load();
 })();
 </script>
 </body>
