@@ -680,6 +680,46 @@ async function resolveNames(gen){
   setStatus('ok', 'Aggiornato ' + new Intl.DateTimeFormat('it-IT',{timeZone:TZ,hour:'2-digit',minute:'2-digit'}).format(new Date()));
 }
 
+/* ══ NUOVO: orario breve, usato dagli stati ══ */
+const hhmm = d => new Intl.DateTimeFormat('it-IT',{timeZone:TZ,hour:'2-digit',minute:'2-digit'}).format(d);
+
+/* ══ NUOVO: applicazione di un payload (cache o fresco) allo schermo ══ */
+function apply(payload, gen){
+  const c = store.get();
+  STATE.raw = payload;
+  /* i nomi gia' noti arrivano dalla cache locale prima del primo render */
+  if (!c.demo) {
+    const cache = loadICache();
+    STATE.raw.instruments = { ...cache, ...(STATE.raw.instruments || {}) };
+    saveICache({ ...cache, ...(payload.instruments || {}) });
+  }
+  ingest(STATE.raw);
+  renderAll();
+  clearInterval(STATE.timer);
+  if (payload.fromCache) {
+    setStatus('load', 'Dati in cache · aggiorno…');
+  } else {
+    setStatus('ok', 'Aggiornato ' + hhmm(new Date()));
+  }
+  if (!c.demo) {
+    STATE.timer = setInterval(refreshLive, 30000);
+    if (!payload.fromCache) resolveNames(gen);
+  } else STATE.namesDone = true;
+}
+
+/* ══ NUOVO: secondo giro in background sui dati freschi.
+   Il primo render e' gia' avvenuto, qui non si blocca piu' nulla. ══ */
+async function refreshFresh(gen, q){
+  try {
+    const p = await api('all', { ...q, fresh: 1 });
+    if (gen !== STATE.gen) return;
+    apply(p, gen);
+  } catch (e) {
+    if (gen !== STATE.gen) return;
+    setStatus('err', 'Aggiornamento non riuscito · dati in cache');
+  }
+}
+
 async function load(){
   const c = store.get();
   const gen = ++STATE.gen;      // invalida eventuali cicli in volo
@@ -701,18 +741,10 @@ async function load(){
     const payload = c.demo ? demoPayload(minDate, maxDate) : await api('all', { minDate, maxDate, account, currency });
     stopTick();
     if (gen !== STATE.gen) return;   // un caricamento piu' recente ha gia' preso il posto
-    STATE.raw = payload;
-    /* i nomi gia' noti arrivano dalla cache locale prima del primo render */
-    if (!c.demo) {
-      const cache = loadICache();
-      STATE.raw.instruments = { ...cache, ...(STATE.raw.instruments || {}) };
-      saveICache({ ...cache, ...(payload.instruments || {}) });
-    }
-    ingest(STATE.raw);
-    renderAll();
-    setStatus('ok', 'Aggiornato ' + new Intl.DateTimeFormat('it-IT',{timeZone:TZ,hour:'2-digit',minute:'2-digit'}).format(new Date()));
-    if (!c.demo) { STATE.timer = setInterval(refreshLive, 30000); resolveNames(gen); }
-    else STATE.namesDone = true;
+    apply(payload, gen);
+    /* ══ NUOVO: se quello che si vede viene dalla cache, i dati freschi
+       arrivano dopo senza tenere la pagina ferma ad aspettare eToro ══ */
+    if (!c.demo && payload.fromCache) refreshFresh(gen, { minDate, maxDate, account, currency });
   } catch (e) {
     stopTick();
     setStatus('err', 'Errore');
@@ -787,7 +819,12 @@ function ingest(p){
     : (p.balances?.totalBalance != null ? `${CUR} · saldo ${money(cvNow(p.balances.totalBalance))}` : '');
   const tm = p.timings ? ' · tempi Edge Function: ' +
     Object.entries(p.timings).map(([k,v]) => `${k} ${(v/1000).toFixed(1)}s`).join(', ') : '';
-  $('footNote').textContent = 'Dati eToro · periodo ' + (p.range?.minDate||'') + ' → ' + (p.range?.maxDate||'') + tm +
+  /* NUOVO: si distingue a colpo d'occhio la cache dal dato appena letto */
+  const cacheNote = p.cachedAt
+    ? (p.fromCache ? ` · dalla cache, dati del ${fmtDT(new Date(p.cachedAt))}`
+                   : ` · letti da eToro alle ${hhmm(new Date(p.cachedAt))}`)
+    : '';
+  $('footNote').textContent = 'Dati eToro · periodo ' + (p.range?.minDate||'') + ' → ' + (p.range?.maxDate||'') + cacheNote + tm +
     (FX ? ` · importi convertiti ${FX.base}→${FX.quote} al cambio BCE del giorno di ciascuna operazione` : '') +
     (store.get().demo ? ' · DATI DEMO' : '');
 }
@@ -900,7 +937,18 @@ function renderDiag(){
   if (balErr) issues.push(`Saldi non recuperati: <code>${balErr}</code>`);
 
   if (!p.balanceHistory || p.balanceHistory.length === 0) {
-    issues.push('Storico saldi vuoto: la curva "Saldo conto" resta piatta. eToro lo espone solo per gli ultimi 12 mesi.');
+    issues.push('Storico saldi vuoto: la curva "Saldo conto" resta piatta. eToro lo espone solo per gli ultimi 12 mesi.' +
+      (p.balanceHistoryError ? ` Risposta: <code>${p.balanceHistoryError}</code>` : ''));
+  }
+
+  /* NUOVO: blocchi serviti dall'ultimo dato buono perche' eToro non ha
+     risposto in questo giro. Meglio dichiararlo che spacciarli per attuali. */
+  if (p.stale) {
+    const nomi = { trades:'storico trade', snapshot:'portafoglio', balances:'saldi', balanceHistory:'storico saldi' };
+    const ts = Object.values(p.stale)[0];
+    issues.push(`Non aggiornati in questo giro (si vede l'ultimo dato buono` +
+      (ts ? ` del ${fmtDT(new Date(ts))}` : '') + `): ` +
+      Object.keys(p.stale).map(k => `<b>${nomi[k] || k}</b>`).join(', ') + '.');
   }
 
   /* Il messaggio compare solo a risoluzione conclusa, non durante */
@@ -928,7 +976,7 @@ function renderDiag(){
 
   /* Se una fase è scaduta, i tempi misurati dicono subito quale: si mostrano
      accanto all'errore invece di lasciarli solo in fondo alla pagina. */
-  const scaduto = issues.some(i => i.includes('tempo massimo'));
+  const scaduto = critical && !!p.timings && !p.fromCache;
   if (scaduto && p.timings) {
     issues.push('Tempi misurati lato Edge Function: ' +
       Object.entries(p.timings).map(([k,v]) => `<code>${k} ${(v/1000).toFixed(1)}s</code>`).join(' '));
