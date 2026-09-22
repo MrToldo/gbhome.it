@@ -432,6 +432,22 @@
     0%,100%{transform:scaleX(1);}
     50%{transform:scaleX(.88);}
   }
+  /* ── NUOVO · Card 5 Vini — onda nel calice + bollicine ── */
+  .wine-wave{animation:wineWave 3.2s linear infinite;}
+  @keyframes wineWave{from{transform:translateX(0);}to{transform:translateX(-40px);}}
+  .wine-bubble{animation:wineBubble 4s ease-in infinite;opacity:0;}
+  .wine-bubble:nth-of-type(2){animation-delay:1.3s;}
+  .wine-bubble:nth-of-type(3){animation-delay:2.6s;}
+  @keyframes wineBubble{
+    0%{transform:translateY(0);opacity:0;}
+    15%{opacity:.8;}
+    100%{transform:translateY(-44px);opacity:0;}
+  }
+  .wine-dot{animation:allocPulse 3.8s ease-in-out infinite;}
+  .wine-dot:nth-of-type(2n){animation-delay:.6s;}
+  .wine-dot:nth-of-type(3n){animation-delay:1.3s;}
+  /* ── FINE NUOVO ── */
+
   /* ── FOOTER ── */
   footer{
     padding:20px 32px;border-top:1px solid var(--border-soft);
@@ -699,7 +715,7 @@
 <section class="grid-section" style="padding-top:44px;">
   <div class="grid-head enter enter-2">
     <h2>Strumenti</h2>
-    <span class="count">4</span>
+    <span class="count">5</span>
     <span class="line"></span>
   </div>
   <div class="cards">
@@ -911,6 +927,57 @@
         </div>
       </div>
     </a>
+
+    <!-- ── NUOVO · CARD 5: Vini ── -->
+    <a class="card enter enter-7" href="vini.html" data-tilt>
+      <div class="card-bg">
+        <svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="g5a" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#2a0a16"/>
+              <stop offset="100%" stop-color="#12070d"/>
+            </linearGradient>
+            <clipPath id="g5bowl">
+              <path d="M265 45 C265 120 285 155 320 158 C355 155 375 120 375 45 Z"/>
+            </clipPath>
+          </defs>
+          <rect width="400" height="260" fill="url(#g5a)"/>
+          <circle cx="320" cy="110" r="100" fill="#ff6b8a" fill-opacity=".07"/>
+          <!-- bottiglia -->
+          <path d="M84 40h22v42c0 8 18 14 18 34v112a8 8 0 0 1-8 8H74a8 8 0 0 1-8-8V116c0-20 18-26 18-34z" fill="#b8284a" fill-opacity=".55"/>
+          <rect x="74" y="140" width="42" height="48" rx="3" fill="#fff" fill-opacity=".12"/>
+          <line x1="82" y1="156" x2="108" y2="156" stroke="#fff" stroke-opacity=".3" stroke-width="2"/>
+          <line x1="82" y1="166" x2="102" y2="166" stroke="#fff" stroke-opacity=".2" stroke-width="2"/>
+          <!-- voti (puntini) -->
+          <circle class="wine-dot" cx="150" cy="200" r="5" fill="#ff6b8a"/>
+          <circle class="wine-dot" cx="166" cy="200" r="5" fill="#ff6b8a"/>
+          <circle class="wine-dot" cx="182" cy="200" r="5" fill="#ff6b8a"/>
+          <circle class="wine-dot" cx="198" cy="200" r="5" fill="#ff6b8a"/>
+          <circle class="wine-dot" cx="214" cy="200" r="5" fill="#ff6b8a" fill-opacity=".3"/>
+          <!-- calice -->
+          <g clip-path="url(#g5bowl)">
+            <path class="wine-wave" d="M200 100 q10 -6 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 L480 170 L200 170 Z" fill="#c2304f" fill-opacity=".9"/>
+            <circle class="wine-bubble" cx="305" cy="148" r="2.5" fill="#ffb3c3"/>
+            <circle class="wine-bubble" cx="322" cy="150" r="2" fill="#ffb3c3"/>
+            <circle class="wine-bubble" cx="338" cy="146" r="2.5" fill="#ffb3c3"/>
+          </g>
+          <path d="M265 45 C265 120 285 155 320 158 C355 155 375 120 375 45" fill="none" stroke="#ff8aa3" stroke-opacity=".55" stroke-width="2"/>
+          <line x1="320" y1="158" x2="320" y2="214" stroke="#ff8aa3" stroke-opacity=".55" stroke-width="2.5"/>
+          <ellipse cx="320" cy="217" rx="32" ry="5" fill="none" stroke="#ff8aa3" stroke-opacity=".55" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="card-overlay"></div>
+      <div class="card-spot"></div>
+      <div class="card-content">
+
+        <div style="margin-top:auto;">
+          <div class="card-title">Vini</div>
+          <div class="card-desc">Cantina personale: nome, voto e sensazioni in pochi tocchi. La foto della bottiglia la trova da sola.</div>
+          <div class="card-arrow" style="color:#ff6b8a;">Apri <span>→</span></div>
+        </div>
+      </div>
+    </a>
+    <!-- ── FINE NUOVO ── -->
 
   </div>
 </section>
