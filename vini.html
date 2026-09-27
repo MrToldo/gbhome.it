@@ -98,6 +98,21 @@ input,select,textarea{font-family:var(--font-ui);}
 .view-tabs button svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
 .view-tabs button.on{background:var(--wine-glow);color:var(--wine);}
 
+/* ── PULSANTE RICERCA VITIGNO/REGIONE (solo Brave Search) ── */
+.btn-ai{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+  background:linear-gradient(150deg,rgba(255,107,138,.16),rgba(255,107,138,.06));
+  border:1px solid var(--wine-ring);color:var(--wine-bright);
+  font-weight:800;font-size:13px;padding:11px 14px;border-radius:12px;margin-bottom:14px;
+  transition:background .2s,transform .15s var(--spring);
+}
+.btn-ai:hover{background:rgba(255,107,138,.22);}
+.btn-ai:active{transform:scale(.98);}
+.btn-ai svg{width:16px;height:16px;stroke:currentColor;flex-shrink:0;}
+.btn-ai.loading svg{animation:spin 1s linear infinite;}
+.btn-ai:disabled{opacity:.6;cursor:default;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
 /* ── STATISTICHE ── */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
 .stat{background:var(--bg-base);border-radius:16px;padding:16px 18px;border:1px solid rgba(255,255,255,.03);}
@@ -510,6 +525,17 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         </div>
       </div>
 
+      <div class="row2 field">
+        <div>
+          <label class="flabel" for="fPrezzo">Prezzo €</label>
+          <input class="in" id="fPrezzo" inputmode="decimal" placeholder="8,00">
+        </div>
+        <div>
+          <label class="flabel" for="fTemp">Temperatura di servizio</label>
+          <input class="in" id="fTemp" placeholder="Es. 16-18°C" autocomplete="off">
+        </div>
+      </div>
+
       <div class="field">
         <span class="flabel">Corpo</span>
         <div class="chips" id="corpoChips"></div>
@@ -552,6 +578,11 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
 
       <details class="more" id="moreBox">
         <summary><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>Altri dettagli</summary>
+        <!-- NUOVO · autocompilazione Vitigno/Regione via Brave Search (nessuna IA a pagamento) -->
+        <button type="button" class="btn-ai" id="btnAiFill">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          Cerca vitigno e regione online
+        </button>
         <div class="row2 field">
           <div>
             <label class="flabel" for="fVitigno">Vitigno</label>
@@ -564,23 +595,13 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
             <datalist id="regioniList"></datalist>
           </div>
         </div>
-        <div class="row2 field">
-          <div>
-            <label class="flabel" for="fPrezzo">Prezzo €</label>
-            <input class="in" id="fPrezzo" inputmode="decimal" placeholder="8,00">
-          </div>
-          <div>
-            <label class="flabel" for="fData">Data</label>
-            <input class="in" id="fData" type="date">
-          </div>
+        <div class="field">
+          <label class="flabel" for="fData">Data</label>
+          <input class="in" id="fData" type="date">
         </div>
         <div class="field">
           <span class="flabel">Formato</span>
           <div class="chips" id="formatoChips"></div>
-        </div>
-        <div class="field">
-          <label class="flabel" for="fTemp">Temperatura di servizio</label>
-          <input class="in" id="fTemp" placeholder="Es. 16-18°C" autocomplete="off">
         </div>
       </details>
     </div>
@@ -636,6 +657,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   const BUCKET = 'vini-photos';
   const QUEUE_KEY = 'gb_vini_queue';
   const FN_FOTO   = 'vini-foto';   // NUOVO · Edge Function ricerca immagini
+  const FN_INFO   = 'vini-info';   // NUOVO · Edge Function Brave Search per vitigno/regione (nessuna IA a pagamento)
 
   /* ══ DIZIONARI ══ */
   const TIPI = [
@@ -1041,7 +1063,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     $('#fPrezzo').value = v.prezzo != null ? String(v.prezzo).replace('.', ',') : '';
     $('#fData').value = v.data || todayISO();
     $('#fTemp').value = v.temperatura || '';   // NUOVO
-    $('#moreBox').open = !!(v.vitigno || v.regione || v.prezzo != null || v.formato || v.temperatura);
+    $('#moreBox').open = !!(v.vitigno || v.regione || v.formato);   // FIX · prezzo e temperatura ora sono campi principali
     $('#formTitle').textContent = 'Modifica vino';
     paintForm();
   }
@@ -1203,6 +1225,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
 
   $('#btnEdit').addEventListener('click', () => {
     const v = vini.find(x => x.id === detailId); if (!v) return;
+    closeOv('detOv');   // FIX · chiude il dettaglio prima di aprire il form di modifica
     fillForm(v); openOv('formOv');
   });
   $('#btnDel').addEventListener('click', async () => {
@@ -1217,8 +1240,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   /* ═══════════════════════════════════════════════
      NUOVO · RICERCA FOTO ONLINE (Edge Function vini-foto)
      ═══════════════════════════════════════════════ */
-  async function callFn(body){
-    const { data, error } = await sb.functions.invoke(FN_FOTO, { body });
+  async function callFn(name, body){
+    const { data, error } = await sb.functions.invoke(name, { body });
     if (error){
       let msg = error.message;
       try { const j = await error.context.json(); if (j && j.error) msg = j.error; } catch(_){}
@@ -1227,8 +1250,33 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     if (data && data.error) throw new Error(data.error);
     return data;
   }
-  const webSearch = q => callFn({ action:'search', q }).then(d => d.results || []);
-  const webSave   = r => callFn({ action:'save', url: r.url, thumb: r.thumb });
+  const webSearch = q => callFn(FN_FOTO, { action:'search', q }).then(d => d.results || []);
+  const webSave   = r => callFn(FN_FOTO, { action:'save', url: r.url, thumb: r.thumb });
+
+  /* ═══════════════════════════════════════════════
+     NUOVO · CERCA VITIGNO/REGIONE ONLINE (Edge Function vini-info · solo Brave Search)
+     ═══════════════════════════════════════════════ */
+  $('#btnAiFill').addEventListener('click', async () => {
+    const nome = $('#fNome').value.trim();
+    const cantina = $('#fCantina').value.trim();
+    if (!nome && !cantina){ toast('Scrivi almeno il nome o la cantina'); return; }
+    const btn = $('#btnAiFill');
+    btn.disabled = true; btn.classList.add('loading');
+    const origLabel = btn.innerHTML;
+    btn.innerHTML = btn.innerHTML.replace('Cerca vitigno e regione online', 'Cerco…');
+    try {
+      const d = await callFn(FN_INFO, { nome, cantina, annata: $('#fAnnata').value.trim() });
+      let filled = 0;
+      if (d.vitigno && !$('#fVitigno').value.trim()){ $('#fVitigno').value = d.vitigno; filled++; }
+      if (d.regione && !$('#fRegione').value.trim()){ $('#fRegione').value = d.regione; filled++; }
+      toast(filled ? 'Campi compilati 🍇' : 'Nessuna informazione trovata, prova a inserirli a mano', 3200);
+    } catch(e){
+      console.error(e);
+      toast('Errore nella ricerca: ' + (e.message || e), 3600);
+    } finally {
+      btn.disabled = false; btn.classList.remove('loading'); btn.innerHTML = origLabel;
+    }
+  });
 
   function queryFor(v){
     const nome = v.nome && v.nome !== 'Da completare' ? v.nome : '';
