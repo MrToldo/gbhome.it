@@ -92,6 +92,12 @@ input,select,textarea{font-family:var(--font-ui);}
 .queue-bar.show{display:flex;}
 .queue-bar button{margin-left:auto;background:none;border:1px solid rgba(240,180,41,.45);color:#f0b429;border-radius:999px;padding:5px 12px;font-weight:800;font-size:12px;cursor:pointer;}
 
+/* ── TAB VISTA (Recensiti / In cantina) ── */
+.view-tabs{display:flex;gap:6px;background:var(--bg-base);border-radius:14px;padding:4px;margin-bottom:16px;border:1px solid rgba(255,255,255,.03);}
+.view-tabs button{flex:1;border:none;background:none;color:var(--text-mid);font-weight:800;font-size:13.5px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .2s,color .2s;display:flex;align-items:center;justify-content:center;gap:7px;}
+.view-tabs button svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
+.view-tabs button.on{background:var(--wine-glow);color:var(--wine);}
+
 /* ── STATISTICHE ── */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
 .stat{background:var(--bg-base);border-radius:16px;padding:16px 18px;border:1px solid rgba(255,255,255,.03);}
@@ -172,6 +178,8 @@ input,select,textarea{font-family:var(--font-ui);}
 }
 .tbadge i{width:7px;height:7px;border-radius:50%;}
 .heart{position:absolute;top:12px;left:10px;width:22px;height:22px;fill:var(--wine);filter:drop-shadow(0 1px 4px rgba(0,0,0,.6));}
+.cellar-badge{position:absolute;right:10px;bottom:10px;width:26px;height:26px;border-radius:9px;background:rgba(16,20,31,.82);display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
+.cellar-badge svg{width:13px;height:13px;stroke:var(--wine);fill:none;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round;}
 .winfo{padding:11px 13px 13px;display:flex;flex-direction:column;gap:3px;}
 .wname{font-weight:800;font-size:15px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .wname.todo{color:var(--text-lo);font-style:italic;}
@@ -413,6 +421,11 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     <button type="button" id="queueRetry">Invia ora</button>
   </div>
 
+  <div class="view-tabs" id="viewTabs">
+    <button type="button" class="on" data-view="recensiti"><svg viewBox="0 0 24 24"><path d="M8 2h8l-.5 7a3.5 3.5 0 0 1-7 0z"/><path d="M12 13v8M8 21h8"/></svg>Recensiti</button>
+    <button type="button" data-view="cantina"><svg viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21V12h6v9"/></svg>In cantina</button>
+  </div>
+
   <section class="stats" id="stats"></section>
 
   <details class="taste" id="taste">
@@ -477,6 +490,11 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         <div class="chips" id="tipoChips"></div>
       </div>
 
+      <div class="field" id="metodoField" style="display:none">
+        <span class="flabel">Metodo</span>
+        <div class="chips" id="metodoChips"></div>
+      </div>
+
       <div class="field">
         <label class="flabel" for="fNome">Nome <em>(se non lo scrivi ora, lo completi dopo dalla foto)</em></label>
         <input class="in" id="fNome" placeholder="Es. Barolo Cannubi" autocomplete="off" autocapitalize="words">
@@ -508,6 +526,14 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       <div class="field">
         <span class="flabel">Lo ricomprerei?</span>
         <div class="yn" id="yn">
+          <button type="button" class="yes" data-v="1">Sì</button>
+          <button type="button" class="no" data-v="0">No</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="flabel">Ce l'ho in cantina?</span>
+        <div class="yn" id="cantinaYn">
           <button type="button" class="yes" data-v="1">Sì</button>
           <button type="button" class="no" data-v="0">No</button>
         </div>
@@ -551,6 +577,10 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         <div class="field">
           <span class="flabel">Formato</span>
           <div class="chips" id="formatoChips"></div>
+        </div>
+        <div class="field">
+          <label class="flabel" for="fTemp">Temperatura di servizio</label>
+          <input class="in" id="fTemp" placeholder="Es. 16-18°C" autocomplete="off">
         </div>
       </details>
     </div>
@@ -617,15 +647,18 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     { k:'dolce',     l:'Dolce',     c:'#c79a3a' }
   ];
   const CORPO   = ['Leggero','Medio','Pieno'];
+  const METODO  = ['Metodo classico','Metodo charmat'];   // NUOVO · solo per tipo "bollicine"
   const NASO    = ['Fruttato','Frutti rossi','Frutti neri','Agrumi','Floreale','Erbaceo','Speziato','Legno/Tostato','Vaniglia','Minerale'];
   const BOCCA   = ['Secco','Morbido','Tannico','Fresco','Sapido','Caldo','Persistente','Amabile','Frizzante'];
   const FORMATO = ['Calice','Bottiglia'];
   const tipoOf  = k => TIPI.find(t => t.k === k);
+  const TEMP_HINT = { rosso:'16-18°C', bianco:'8-10°C', rosato:'10-12°C', bollicine:'6-8°C', orange:'12-14°C', dolce:'8-10°C' };   // NUOVO · suggerimento in base al tipo
 
   /* ══ STATO ══ */
   let currentUser = null;
   let vini = [];
   let filtro = 'tutti';
+  let view = 'recensiti';   // NUOVO · 'recensiti' | 'cantina'
   let camTarget = 'form';     // 'form' | 'detail'
   let webTarget = 'form';     // NUOVO · 'form' | 'detail'
   let detailId = null;
@@ -736,7 +769,30 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   /* ══ RENDER ══ */
   function renderAll(){ renderStats(); renderTaste(); renderFilters(); renderGrid(); renderDatalists(); }
 
+  /* NUOVO · TAB Recensiti / In cantina */
+  $('#viewTabs').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    view = b.dataset.view;
+    document.querySelectorAll('#viewTabs button').forEach(x => x.classList.toggle('on', x === b));
+    $('#taste').style.display = view === 'cantina' ? 'none' : '';
+    filtro = 'tutti';
+    renderStats(); renderFilters(); renderGrid();
+  });
+
   function renderStats(){
+    if (view === 'cantina'){
+      const list = vini.filter(v => v.in_cantina);
+      const n = list.length;
+      const valore = list.reduce((a, v) => a + (v.prezzo || 0), 0);
+      const tipiN = new Set(list.map(v => v.tipo).filter(Boolean)).size;
+      const bolle = list.filter(v => v.tipo === 'bollicine').length;
+      $('#stats').innerHTML = `
+        <div class="stat"><div class="stat-v">${n}</div><div class="stat-l">Bottiglie in cantina</div></div>
+        <div class="stat accent"><div class="stat-v" style="font-size:20px;">${valore ? fmtEur(valore) : '–'}</div><div class="stat-l">Valore stimato</div></div>
+        <div class="stat"><div class="stat-v">${tipiN || '–'}</div><div class="stat-l">Tipi diversi</div></div>
+        <div class="stat"><div class="stat-v">${bolle}</div><div class="stat-l">Bollicine pronte</div></div>`;
+      return;
+    }
     const n = vini.length;
     const votati = vini.filter(v => v.voto != null);
     const media = votati.length ? (votati.reduce((a, v) => a + v.voto, 0) / votati.length) : null;
@@ -810,6 +866,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   function visibleList(){
     const q = $('#q').value.trim().toLowerCase();
     let list = vini.filter(v => {
+      if (view === 'cantina' && !v.in_cantina) return false;   // NUOVO
       if (filtro === 'top' && !(v.voto >= 8)) return false;
       if (filtro === 'nofoto' && v.foto_url) return false;
       if (filtro === 'todo' && v.nome !== 'Da completare') return false;
@@ -834,7 +891,9 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       return;
     }
     if (!list.length){
-      g.innerHTML = `<div class="empty"><b>Nessun risultato</b>Prova a cambiare filtro o ricerca.</div>`;
+      g.innerHTML = view === 'cantina'
+        ? `<div class="empty"><b>Nessuna bottiglia in cantina</b>Quando registri un vino, spunta "Ce l'ho in cantina?" per ritrovarlo qui.</div>`
+        : `<div class="empty"><b>Nessun risultato</b>Prova a cambiare filtro o ricerca.</div>`;
       return;
     }
     g.innerHTML = list.map((v, i) => {
@@ -847,6 +906,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
           <div class="ph">
             ${v.foto_url ? `<img src="${esc(v.foto_url)}" alt="" loading="lazy">` : `<div class="noimg">${bottleSvg(t ? t.c : '#5f6b83')}</div>`}
             ${v.ricomprerei ? `<svg class="heart" viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.2 3 4.5 6.6 4.5c2.1 0 3.9 1.3 5.4 3.2 1.5-1.9 3.3-3.2 5.4-3.2 3.6 0 5.7 3.7 4.2 7.2C19.5 16.4 12 21 12 21z"/></svg>` : ''}
+            ${v.in_cantina ? `<span class="cellar-badge" title="In cantina"><svg viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21V12h6v9"/></svg></span>` : ''}
             <span class="vbadge ${vcls}">${v.voto ?? '–'}</span>
             ${t ? `<span class="tbadge"><i style="background:${t.c}"></i>${t.l}</span>` : ''}
           </div>
@@ -892,6 +952,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     $('#nasoChips').innerHTML    = simple(NASO);
     $('#boccaChips').innerHTML   = simple(BOCCA);
     $('#formatoChips').innerHTML = simple(FORMATO);
+    $('#metodoChips').innerHTML  = simple(METODO);   // NUOVO
   })();
 
   function paintForm(){
@@ -904,8 +965,12 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     single('#tipoChips', F.tipo);
     single('#corpoChips', F.corpo);
     single('#formatoChips', F.formato);
+    single('#metodoChips', F.metodo);   // NUOVO
+    $('#metodoField').style.display = F.tipo === 'bollicine' ? '' : 'none';   // NUOVO · visibile solo per le bollicine
     document.querySelectorAll('#nasoChips .chip, #boccaChips .chip').forEach(b => b.classList.toggle('on', F.tags.has(b.dataset.v)));
     document.querySelectorAll('#yn button').forEach(b => b.classList.toggle('on', F.ricomprerei != null && (b.dataset.v === '1') === F.ricomprerei));
+    document.querySelectorAll('#cantinaYn button').forEach(b => b.classList.toggle('on', F.inCantina != null && (b.dataset.v === '1') === F.inCantina));   // NUOVO
+    $('#fTemp').placeholder = 'Es. ' + (TEMP_HINT[F.tipo] || '16-18°C');   // NUOVO · suggerimento in base al tipo
     const pp = $('#photoPick');
     pp.querySelector('img')?.remove();
     const src = F.preview || (F.web && F.web.thumb) || F.fotoUrl;
@@ -915,7 +980,13 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
 
   $('#voti').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const v = +b.dataset.v; F.voto = F.voto === v ? null : v; paintForm(); });
   const bindSingle = (sel, key) => $(sel).addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; F[key] = F[key] === b.dataset.v ? null : b.dataset.v; paintForm(); });
-  bindSingle('#tipoChips', 'tipo');
+  $('#tipoChips').addEventListener('click', e => {   // NUOVO · gestito a parte per azzerare il metodo se non è più bollicine
+    const b = e.target.closest('.chip'); if (!b) return;
+    F.tipo = F.tipo === b.dataset.v ? null : b.dataset.v;
+    if (F.tipo !== 'bollicine') F.metodo = null;
+    paintForm();
+  });
+  bindSingle('#metodoChips', 'metodo');   // NUOVO
   bindSingle('#corpoChips', 'corpo');
   bindSingle('#formatoChips', 'formato');
   ['#nasoChips', '#boccaChips'].forEach(sel => $(sel).addEventListener('click', e => {
@@ -923,6 +994,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     F.tags.has(b.dataset.v) ? F.tags.delete(b.dataset.v) : F.tags.add(b.dataset.v); paintForm();
   }));
   $('#yn').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const v = b.dataset.v === '1'; F.ricomprerei = F.ricomprerei === v ? null : v; paintForm(); });
+  $('#cantinaYn').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const v = b.dataset.v === '1'; F.inCantina = F.inCantina === v ? null : v; paintForm(); });   // NUOVO
   /* NUOVO · tre sorgenti foto (form e dettaglio) */
   document.addEventListener('click', e => {
     const b = e.target.closest('.photo-actions button'); if (!b) return;
@@ -938,13 +1010,13 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     paintForm();
   });
 
-  const INPUTS = { nome:'#fNome', cantina:'#fCantina', annata:'#fAnnata', luogo:'#fLuogo', note:'#fNote', vitigno:'#fVitigno', regione:'#fRegione', prezzo:'#fPrezzo', data:'#fData' };
+  const INPUTS = { nome:'#fNome', cantina:'#fCantina', annata:'#fAnnata', luogo:'#fLuogo', note:'#fNote', vitigno:'#fVitigno', regione:'#fRegione', prezzo:'#fPrezzo', data:'#fData', temperatura:'#fTemp' };
 
   function resetForm(){
     if (F?.preview) URL.revokeObjectURL(F.preview);
     const last = vini[0];
     const sameDay = last && last.data === todayISO();
-    F = { id:null, blob:null, preview:null, web:null, fotoAuto:false, fotoUrl:null, fotoPath:null, voto:null, tipo:null, corpo:null, formato:null, tags:new Set(), ricomprerei:null };
+    F = { id:null, blob:null, preview:null, web:null, fotoAuto:false, fotoUrl:null, fotoPath:null, voto:null, tipo:null, corpo:null, formato:null, metodo:null, tags:new Set(), ricomprerei:null, inCantina:null };
     Object.values(INPUTS).forEach(s => $(s).value = '');
     $('#fData').value = todayISO();
     if (sameDay && last.luogo) $('#fLuogo').value = last.luogo;   // stessa serata, stesso posto
@@ -956,8 +1028,9 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   function fillForm(v){
     resetForm();
     F.id = v.id; F.fotoUrl = v.foto_url; F.fotoPath = v.foto_path; F.fotoAuto = !!v.foto_auto;
-    F.voto = v.voto; F.tipo = v.tipo; F.corpo = v.corpo; F.formato = v.formato;
+    F.voto = v.voto; F.tipo = v.tipo; F.corpo = v.corpo; F.formato = v.formato; F.metodo = v.metodo || null;
     F.tags = new Set(v.tag || []); F.ricomprerei = v.ricomprerei;
+    F.inCantina = v.in_cantina;   // NUOVO
     $('#fNome').value = v.nome === 'Da completare' ? '' : (v.nome || '');
     $('#fCantina').value = v.cantina || '';
     $('#fAnnata').value = v.annata || '';
@@ -967,7 +1040,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     $('#fRegione').value = v.regione || '';
     $('#fPrezzo').value = v.prezzo != null ? String(v.prezzo).replace('.', ',') : '';
     $('#fData').value = v.data || todayISO();
-    $('#moreBox').open = !!(v.vitigno || v.regione || v.prezzo != null || v.formato);
+    $('#fTemp').value = v.temperatura || '';   // NUOVO
+    $('#moreBox').open = !!(v.vitigno || v.regione || v.prezzo != null || v.formato || v.temperatura);
     $('#formTitle').textContent = 'Modifica vino';
     paintForm();
   }
@@ -987,11 +1061,14 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       cantina: val('#fCantina'),
       annata: Number.isFinite(annata) && annata > 1900 && annata < 2100 ? annata : null,
       tipo: F.tipo, corpo: F.corpo, formato: F.formato,
+      metodo: F.tipo === 'bollicine' ? F.metodo : null,   // NUOVO · ha senso solo per le bollicine
       tag: [...F.tags],
       voto: F.voto, ricomprerei: F.ricomprerei,
+      in_cantina: F.inCantina,   // NUOVO
       luogo: val('#fLuogo'), note: val('#fNote'),
       vitigno: val('#fVitigno'), regione: val('#fRegione'),
       prezzo: Number.isFinite(prezzo) ? prezzo : null,
+      temperatura: val('#fTemp'),   // NUOVO
       data: $('#fData').value || todayISO()
     };
   }
@@ -1101,6 +1178,9 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         ${cell('Vitigno', v.vitigno)}
         ${cell('Regione', v.regione)}
         ${cell('Prezzo', v.prezzo != null ? fmtEur(v.prezzo) + (v.formato ? ' · ' + v.formato.toLowerCase() : '') : (v.formato || ''))}
+        ${v.tipo === 'bollicine' ? cell('Metodo', v.metodo) : ''}
+        ${cell('Temperatura di servizio', v.temperatura)}
+        ${v.in_cantina != null ? cell('In cantina', v.in_cantina ? 'Sì' : 'No') : ''}
         ${v.ricomprerei != null ? cell('Lo ricomprerei', v.ricomprerei ? 'Sì' : 'No') : ''}
       </div>
       ${tags.length ? `<div class="d-tags">${tags.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
