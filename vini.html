@@ -330,6 +330,18 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
 .rev .d-sub{margin:10px 0 6px;}
 .rev .d-tags.mini{margin:0;}
 .rev .d-tags.mini span{font-size:12px;padding:5px 10px;}
+/* NUOVO · doppioni */
+.dup-box:empty{display:none;}
+.dup-box{margin-top:10px;background:var(--wine-glow);border:1px solid var(--wine-ring);border-radius:14px;padding:10px 12px;}
+.dup-box .dh{font-size:12.5px;font-weight:800;color:var(--wine);margin-bottom:6px;}
+.dup-it{display:flex;align-items:center;gap:10px;padding:7px 0;}
+.dup-it + .dup-it{border-top:1px solid var(--border-strong);}
+.dup-it .tx{flex:1;min-width:0;}
+.dup-it .n{font-weight:800;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dup-it .m{font-size:12px;color:var(--text-mid);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dup-it button{flex-shrink:0;border:0;border-radius:999px;padding:8px 13px;font-size:13px;font-weight:800;background:var(--wine);color:var(--ink-on-wine);cursor:pointer;}
+.dup-det{margin-bottom:14px;}
+/* FINE NUOVO */
 /* FINE NUOVO */
 
 .yn{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
@@ -523,8 +535,23 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       <div class="sec-h">Il vino <small>scheda comune</small></div>
 
       <div class="field">
+        <span class="flabel">Foto dell'etichetta <em>(facoltativa)</em></span>   <!-- NUOVO · la foto è il primo passo -->
+        <div class="photo-pick" id="photoPick">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <span class="hint">Nessuna foto? Nessun problema:<br>scrivi il nome e la cerco io online quando salvi.</span>
+          <button type="button" class="retake" id="photoClear">Rimuovi</button>
+        </div>
+        <div class="photo-actions" data-target="form">
+          <button type="button" data-src="cam"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.8"/></svg>Scatta</button>
+          <button type="button" data-src="gal"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>Galleria</button>
+          <button type="button" data-src="web"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Online</button>
+        </div>
+      </div>
+
+      <div class="field">
         <label class="flabel" for="fNome">Nome <em>(se non lo scrivi ora, lo completi dopo dalla foto)</em></label>
         <input class="in" id="fNome" placeholder="Es. Barolo Cannubi" autocomplete="off" autocapitalize="words">
+        <div class="dup-box" id="dupBox"></div>   <!-- NUOVO · vini simili già registrati -->
       </div>
       <div class="row3 field">
         <div>
@@ -563,20 +590,6 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         <div class="yn" id="cantinaYn">
           <button type="button" class="yes" data-v="1">Sì</button>
           <button type="button" class="no" data-v="0">No</button>
-        </div>
-      </div>
-
-      <div class="field">
-        <span class="flabel">Foto <em>(facoltativa)</em></span>
-        <div class="photo-pick" id="photoPick">
-          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-          <span class="hint">Nessuna foto? Nessun problema:<br>scrivi il nome e la cerco io online quando salvi.</span>
-          <button type="button" class="retake" id="photoClear">Rimuovi</button>
-        </div>
-        <div class="photo-actions" data-target="form">
-          <button type="button" data-src="cam"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.8"/></svg>Scatta</button>
-          <button type="button" data-src="gal"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>Galleria</button>
-          <button type="button" data-src="web"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Online</button>
         </div>
       </div>
 
@@ -896,6 +909,105 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       { ...r, vino_id: vinoId, user_id: currentUser.id, autore: myName(), updated_at: new Date().toISOString() },
       { onConflict: 'vino_id,user_id' });
     if (error) throw error;
+  }
+  /* ═══ FINE NUOVO ═══ */
+
+  /* ═══ NUOVO · STESSO VINO SCRITTO IN MODO DIVERSO ═══
+     Confronto "tollerante": niente maiuscole, accenti e punteggiatura, piccoli errori di battitura,
+     parole in ordine diverso o in più ("Barolo Cannubi" ≈ "Borgogno Barolo Canubi"). */
+  const normTxt = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  function lev(a, b){
+    if (a === b) return 0;
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++){
+      const cur = [i];
+      for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  const ratio = (a, b) => (a && b) ? 1 - lev(a, b) / Math.max(a.length, b.length) : 0;
+  function simTxt(x, y){
+    const a = normTxt(x), b = normTxt(y);
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+    let s = ratio(a, b);
+    const ta = a.split(' '), tb = b.split(' ');
+    const [sh, lo] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+    if (sh.join('').length >= 4 && sh.every(t => lo.some(u => u === t || (t.length > 3 && ratio(t, u) >= 0.8)))) s = Math.max(s, 0.86);
+    return s;
+  }
+  function matchScore(nome, cantina, annata, v){
+    if (!nome || nome === 'Da completare' || v.nome === 'Da completare') return 0;
+    let s = Math.max(simTxt(nome, v.nome), simTxt(nome, (v.cantina || '') + ' ' + v.nome) * 0.95);
+    if (cantina && v.cantina){ const c = simTxt(cantina, v.cantina); s = c < 0.6 ? s * 0.6 : Math.min(1, s + 0.05); }
+    if (annata && v.annata && +annata !== +v.annata) s *= 0.85;
+    return s;
+  }
+  function similarWines(nome, cantina, annata, excludeId, min = 0.72){
+    return vini.filter(v => v.id !== excludeId)
+      .map(v => ({ v, s: matchScore(nome, cantina, annata, v) }))
+      .filter(x => x.s >= min).sort((a, b) => b.s - a.s).slice(0, 3).map(x => x.v);
+  }
+  const votiTxt = v => v._revs.length ? v._revs.map(r => nameOf(r) + ' ' + (r.voto ?? '–')).join(' · ') : 'nessuna recensione';
+  const dupItem = (v, label, act) => `<div class="dup-it"><div class="tx"><div class="n">${esc(v.nome)}</div>
+      <div class="m">${esc([v.cantina, v.annata, votiTxt(v)].filter(Boolean).join(' · '))}</div></div>
+      <button type="button" data-${act}="${v.id}">${label}</button></div>`;
+
+  /* suggerimenti mentre si scrive un vino nuovo */
+  function renderDupBox(){
+    const box = $('#dupBox'); if (!box) return;
+    if (!F || F.id){ box.innerHTML = ''; return; }
+    const list = similarWines($('#fNome').value.trim(), $('#fCantina').value.trim(), $('#fAnnata').value.trim(), null);
+    box.innerHTML = list.length ? `<div class="dh">È già registrato? Tocca il vino giusto e aggiungi solo la tua recensione</div>` + list.map(v => dupItem(v, 'È questo', 'pick')).join('') : '';
+  }
+  let dupT = null;
+  ['#fNome', '#fCantina', '#fAnnata'].forEach(sel => $(sel).addEventListener('input', () => { clearTimeout(dupT); dupT = setTimeout(renderDupBox, 250); }));
+  $('#dupBox').addEventListener('click', e => {
+    const b = e.target.closest('[data-pick]'); if (!b) return;
+    const v = vini.find(x => x.id === b.dataset.pick); if (!v) return;
+    pickExisting(v);
+  });
+  function pickExisting(v){
+    const keep = { blob: F.blob, preview: F.preview, web: F.web };
+    F.preview = null;                       // evita che resetForm cancelli l'anteprima della foto appena scattata
+    fillForm(v);
+    if (!v.foto_url && (keep.blob || keep.web)){ F.blob = keep.blob; F.preview = keep.preview; F.web = keep.web; paintForm(); }
+    else if (keep.preview) URL.revokeObjectURL(keep.preview);
+    $('#dupBox').innerHTML = '';
+    toast(v._mine ? 'L\'avevi già recensito: puoi aggiornare la tua recensione' : 'Ok, aggiungi la tua recensione a questo vino', 3200);
+  }
+
+  /* unione di due vini già registrati due volte.
+     Si sposta sempre il vino che contiene solo recensioni mie (le regole del database
+     non permettono di spostare la recensione dell'altro). */
+  async function mergeWines(a, b){
+    const movable = w => w._revs.every(r => r.user_id === currentUser.id);
+    let src, dst;
+    if (movable(a) && movable(b)) [src, dst] = (a.created_at || '') < (b.created_at || '') ? [b, a] : [a, b];
+    else if (movable(a)) [src, dst] = [a, b];
+    else if (movable(b)) [src, dst] = [b, a];
+    else { toast('Entrambi i vini hanno recensioni dell\'altro: chiedi di unirli dal suo account', 4500); return null; }
+    if (!confirm(`Unire "${src.nome}" in "${dst.nome}"?\nLe recensioni finiscono su un solo vino e il doppione viene eliminato.`)) return null;
+    if (src._mine){
+      if (!dst._mine){
+        const { error } = await sb.from(TABLE_REV).update({ vino_id: dst.id }).eq('id', src._mine.id);
+        if (error) throw error;
+      } else if (!confirm(`Hai già una recensione su "${dst.nome}" (voto ${dst._mine.voto ?? '–'}).\nTengo quella e scarto l'altra (voto ${src._mine.voto ?? '–'})?`)) return null;
+    }
+    const patch = {};
+    ['cantina', 'annata', 'tipo', 'metodo', 'vitigno', 'regione', 'prezzo', 'temperatura'].forEach(k => { if (dst[k] == null && src[k] != null) patch[k] = src[k]; });
+    if (!dst.in_cantina && src.in_cantina) patch.in_cantina = true;
+    const movedPhoto = !dst.foto_url && !!src.foto_url;
+    if (movedPhoto){ patch.foto_url = src.foto_url; patch.foto_path = src.foto_path; patch.foto_auto = src.foto_auto; }
+    if (Object.keys(patch).length){
+      const { error } = await sb.from(TABLE).update(patch).eq('id', dst.id);
+      if (error) throw error;
+    }
+    const { error: delErr } = await sb.from(TABLE).delete().eq('id', src.id);
+    if (delErr) throw delErr;
+    if (!movedPhoto && src.foto_path) removePhoto(src.foto_path);
+    return dst.id;
   }
   /* ═══ FINE NUOVO ═══ */
 
@@ -1249,6 +1361,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     $('#moreBox').open = false;
     $('#formTitle').textContent = 'Nuovo vino';
     renderVociChips();   // NUOVO · include paintForm
+    renderDupBox();      // NUOVO
   }
 
   function fillForm(v){
@@ -1271,6 +1384,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     $('#moreBox').open = !!(v.vitigno || v.regione);   // NUOVO · ora contiene solo vitigno e regione
     $('#formTitle').textContent = 'Modifica vino';
     renderVociChips();   // NUOVO · include paintForm
+    renderDupBox();      // NUOVO · vuoto in modifica
   }
 
   function setPhoto(blob){
@@ -1325,6 +1439,19 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   /* ══ SALVATAGGIO ══ */
   $('#btnSave').addEventListener('click', save);
   async function save(){
+    /* NUOVO · prima di creare un vino nuovo, controlla che non esista già */
+    let joinCur = null;
+    if (!F.id){
+      const r0 = readForm();
+      const best = similarWines(r0.nome, r0.cantina, r0.annata, null, 0.85)[0];
+      if (best && confirm(`Sembra lo stesso vino già registrato:\n"${best.nome}"${best.cantina ? ' · ' + best.cantina : ''}${best.annata ? ' · ' + best.annata : ''}\n\nOK = aggiungo la tua recensione a quello\nAnnulla = è un vino diverso, lo creo nuovo`)){
+        joinCur = best;
+        F.id = best.id;
+        if (best.foto_url){ if (F.preview) URL.revokeObjectURL(F.preview); F.blob = null; F.preview = null; F.web = null; }
+        F.fotoUrl = best.foto_url; F.fotoPath = best.foto_path; F.fotoAuto = !!best.foto_auto;
+      }
+    }
+    /* FINE NUOVO */
     const rec = readForm();
     if (!F.blob && !F.web && !F.fotoUrl && rec.nome === 'Da completare'){ toast('Scrivi almeno il nome'); return; }
     const btn = $('#btnSave');
@@ -1349,6 +1476,10 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       if (!F.fotoUrl && !rec.foto_url) oldPath = F.fotoPath;  // foto rimossa
       let res;
       const { w, r } = splitRec(rec);   // NUOVO · scheda comune / mia recensione
+      if (joinCur){   // NUOVO · unendo a un vino esistente non si sovrascrive la sua scheda: si riempiono solo i campi vuoti
+        Object.keys(w).forEach(k => { if (k === 'in_cantina' && w[k] === true) return; if (w[k] == null || w[k] === '' || (joinCur[k] != null && joinCur[k] !== '')) delete w[k]; });
+        if (!Object.keys(w).length) w.foto_auto = joinCur.foto_auto;   // update senza campi non è ammesso
+      }
       if (F.id) res = await sb.from(TABLE).update(w).eq('id', F.id).select('id').single();
       else      res = await sb.from(TABLE).insert({ ...w, user_id: currentUser.id }).select('id').single();
       if (res.error) throw res.error;
@@ -1357,7 +1488,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       if (oldPath && oldPath !== rec.foto_path) removePhoto(oldPath);
       done(); closeOv('formOv');
       const needAuto = !rec.foto_url && rec.nome !== 'Da completare';   // NUOVO
-      toast(F.id ? 'Modifiche salvate' : (needAuto ? 'Vino registrato 🍷 cerco la foto…' : 'Vino registrato 🍷'));
+      toast(joinCur ? 'Recensione aggiunta al vino già registrato 🍷' : F.id ? 'Modifiche salvate' :   // NUOVO
+            (needAuto ? 'Vino registrato 🍷 cerco la foto…' : 'Vino registrato 🍷'));
       await load();
       if (F.id && detailId === F.id) renderDetail();
       if (needAuto && res.data){ autoQueue.push(res.data.id); runAutoQueue(); }
@@ -1415,6 +1547,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         ${v.in_cantina != null ? cell('In cantina', v.in_cantina ? 'Sì' : 'No') : ''}
       </div>
       ${v._abb.length ? `<div class="d-sub">Ci sta bene con</div><div class="d-tags">${v._abb.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}   <!-- NUOVO -->
+      ${(() => { const d = similarWines(v.nome, v.cantina, v.annata, v.id); return d.length   // NUOVO · possibili doppioni
+        ? `<div class="dup-box dup-det"><div class="dh">Forse è lo stesso vino registrato due volte</div>${d.map(x => dupItem(x, 'Unisci', 'merge')).join('')}</div>` : ''; })()}
       <div class="revs-h">Recensioni</div>
       ${!v._mine ? `<div class="rev-empty">Non l'hai ancora recensito: tocca <b>Modifica</b> per aggiungere voto e sensazioni.</div>` : ''}
       ${[v._mine, ...v._others].filter(Boolean).map(r => {
@@ -1430,6 +1564,15 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         </div>`;
       }).join('')}`;
     $('#dWrong')?.addEventListener('click', () => openWeb('detail'));
+    $('#detBody').querySelectorAll('[data-merge]').forEach(b => b.addEventListener('click', async () => {   // NUOVO
+      const other = vini.find(x => x.id === b.dataset.merge); if (!other) return;
+      b.disabled = true;
+      try {
+        const keptId = await mergeWines(v, other);
+        if (!keptId){ b.disabled = false; return; }
+        toast('Vini uniti 🍷'); detailId = keptId; await load(); renderDetail();
+      } catch(e){ console.error(e); b.disabled = false; toast('Errore nell\'unione: ' + (e.message || e)); }
+    }));
   }
 
   async function replaceDetailPhoto(blob){
