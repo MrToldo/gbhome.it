@@ -43,3 +43,23 @@ create policy "vini_photos_condivise_update" on storage.objects for update to au
 
 -- Nome visualizzato nelle recensioni
 -- update auth.users set raw_user_meta_data = coalesce(raw_user_meta_data,'{}'::jsonb) || '{"nome":"Giulio"}'::jsonb where email = '...';
+
+-- ═══ 2026-10-05 · abbinamenti, modo di assaggio, voci aggiunte a mano (GIÀ APPLICATO) ═══
+alter table public.vini_recensioni
+  add column abbinamenti text[] not null default '{}',
+  add column occasione   text[] not null default '{}';
+
+create table public.vini_voci (
+  id         uuid primary key default gen_random_uuid(),
+  categoria  text not null check (categoria in ('naso','bocca','abbinamento','occasione')),
+  voce       text not null check (length(trim(voce)) between 1 and 40),
+  created_by uuid default auth.uid() references auth.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+create unique index vini_voci_unica on public.vini_voci (categoria, lower(trim(voce)));
+alter table public.vini_voci enable row level security;
+create policy "voci_leggi"     on public.vini_voci for select to authenticated using (true);
+create policy "voci_inserisci" on public.vini_voci for insert to authenticated with check ((select auth.uid()) = created_by);
+create policy "voci_elimina"   on public.vini_voci for delete to authenticated using (true);
+create policy "solo_2fa" on public.vini_voci as restrictive for all to authenticated
+  using ((select auth.jwt() ->> 'aal') = 'aal2') with check ((select auth.jwt() ->> 'aal') = 'aal2');
