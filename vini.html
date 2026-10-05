@@ -186,6 +186,22 @@ input,select,textarea{font-family:var(--font-ui);}
 }
 .vbadge.hi{background:linear-gradient(160deg,var(--wine-bright),var(--wine-deep));color:#fff;}
 .vbadge.lo{color:var(--text-mid);}
+/* NUOVO · voto dell'altro utente e recensioni nel dettaglio */
+.vbadge2{position:absolute;top:56px;right:10px;height:24px;padding:0 8px;border-radius:8px;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;background:rgba(16,20,31,.82);color:var(--text-mid);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
+.vbadge2 b{color:var(--text-hi);}
+.d-media{display:inline-block;margin-top:8px;font-size:12.5px;font-weight:800;color:var(--wine);background:var(--wine-glow);padding:4px 10px;border-radius:999px;}
+.revs-h{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-lo);margin:6px 0 10px;}
+.rev{background:var(--bg-panel);border-radius:14px;padding:12px 14px;margin-bottom:10px;}
+.rev.me{box-shadow:inset 0 0 0 1px var(--wine-ring);}
+.rev-h{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.rev-h b{font-size:15px;}
+.rev-v{font-weight:800;font-size:20px;color:var(--wine);font-variant-numeric:tabular-nums;}
+.rev-v small{font-size:11px;color:var(--text-lo);margin-left:2px;}
+.rev-m{color:var(--text-mid);font-size:13px;font-weight:600;margin-top:2px;}
+.rev .d-tags{margin:10px 0 0;}
+.rev .d-note{margin-top:10px;background:var(--bg-base);}
+.rev-empty{color:var(--text-mid);font-size:13.5px;font-weight:600;padding:4px 2px 10px;}
+/* FINE NUOVO */
 .tbadge{
   position:absolute;left:10px;bottom:10px;font-size:11px;font-weight:800;
   padding:4px 9px;border-radius:999px;background:rgba(16,20,31,.82);
@@ -403,6 +419,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   .winfo{padding:9px 10px 11px;}
   .wname{font-size:14px;}
   .vbadge{min-width:34px;height:34px;font-size:16px;top:8px;right:8px;}
+  .vbadge2{top:48px;right:8px;}   /* NUOVO */
   .fab{padding:0;width:68px;}
   .fab span{display:none;}
   .overlay{padding:0;align-items:flex-end;}
@@ -496,7 +513,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       <!-- FINE NUOVO -->
 
       <div class="field">
-        <span class="flabel">Voto</span>
+        <span class="flabel">Il tuo voto</span>
+        <div class="sub-l" style="margin-top:0">Voto, corpo, sensazioni, note, data e luogo sono solo tuoi; il resto della scheda è comune.</div>   <!-- NUOVO -->
         <div class="voti" id="voti"></div>
       </div>
 
@@ -654,6 +672,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
   const TABLE  = 'vini';
+  const TABLE_REV = 'vini_recensioni';   // NUOVO · recensioni personali (una per utente per vino)
   const BUCKET = 'vini-photos';
   const QUEUE_KEY = 'gb_vini_queue';
   const FN_FOTO   = 'vini-foto';   // NUOVO · Edge Function ricerca immagini
@@ -756,13 +775,15 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     const left = [];
     for (const item of q){
       try {
-        const rec = { ...item.rec, user_id: currentUser.id };
+        const { w: rec, r: rev } = splitRec(item.rec);   // NUOVO · vino comune + mia recensione
+        rec.user_id = currentUser.id;
         if (item.foto){
           const up = await uploadPhoto(await dataURLToBlob(item.foto));
           rec.foto_url = up.url; rec.foto_path = up.path;
         }
         const { data: ins, error } = await sb.from(TABLE).insert(rec).select('id').single();
         if (error) throw error;
+        try { await saveReview(ins.id, rev); } catch(e){ console.error(e); }   // NUOVO
         if (!rec.foto_url && ins) autoQueue.push(ins.id);   // NUOVO
       } catch(e){ left.push(item); }
     }
@@ -779,12 +800,58 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   $('#queueRetry').addEventListener('click', flushQueue);
   window.addEventListener('online', flushQueue);
 
+  /* ═══ NUOVO · CANTINA CONDIVISA + RECENSIONI PERSONALI ═══
+     Tabella "vini": scheda del vino e cantina, comuni a entrambi.
+     Tabella "vini_recensioni": voto, sensazioni, note… di ciascun utente.
+     Su ogni vino i campi della recensione (voto, tag, note…) sono quelli dell'utente collegato;
+     _revs = tutte le recensioni, _mine = la mia, _others = quelle dell'altro, _media = voto medio. */
+  const REV_FIELDS = ['data', 'luogo', 'formato', 'voto', 'corpo', 'tag', 'ricomprerei', 'note'];
+  const myName = () => currentUser?.user_metadata?.nome || (currentUser?.email || '').split('@')[0];
+  const nameOf = r => r.user_id === currentUser?.id ? myName() : (r.autore || 'Altro');
+  function mergeVini(rows, revs){
+    return rows.map(w => {
+      const all = revs.filter(r => r.vino_id === w.id);
+      const mine = all.find(r => r.user_id === currentUser.id) || null;
+      const others = all.filter(r => r !== mine);
+      const last = [...all].sort((a, b) => (b.data || '').localeCompare(a.data || ''))[0] || null;
+      const src = mine || {};
+      const votes = all.map(r => r.voto).filter(x => x != null);
+      return { ...w,
+        voto: src.voto ?? null, corpo: src.corpo ?? null, tag: src.tag || [], ricomprerei: src.ricomprerei ?? null,
+        note: src.note ?? null, formato: src.formato ?? null,
+        data: (mine || last)?.data || (w.created_at || '').slice(0, 10), luogo: (mine || last)?.luogo ?? null,
+        _revs: all, _mine: mine, _others: others,
+        _media: votes.length ? votes.reduce((a, b) => a + b, 0) / votes.length : null };
+    }).sort((a, b) => (b.data || '').localeCompare(a.data || '') || (b.created_at || '').localeCompare(a.created_at || ''));
+  }
+  function splitRec(rec){
+    const w = { ...rec }, r = {};
+    REV_FIELDS.forEach(k => { r[k] = rec[k]; delete w[k]; });
+    return { w, r };
+  }
+  const hasReview = r => r.voto != null || (r.tag && r.tag.length) || !!r.corpo || r.ricomprerei != null || !!r.note || !!r.formato;
+  async function saveReview(vinoId, r){
+    if (!hasReview(r)){
+      const { error } = await sb.from(TABLE_REV).delete().eq('vino_id', vinoId).eq('user_id', currentUser.id);
+      if (error) throw error;
+      return;
+    }
+    const { error } = await sb.from(TABLE_REV).upsert(
+      { ...r, vino_id: vinoId, user_id: currentUser.id, autore: myName(), updated_at: new Date().toISOString() },
+      { onConflict: 'vino_id,user_id' });
+    if (error) throw error;
+  }
+  /* ═══ FINE NUOVO ═══ */
+
   /* ══ CARICAMENTO ══ */
   async function load(){
-    const { data, error } = await sb.from(TABLE).select('*')
-      .order('data', { ascending:false }).order('created_at', { ascending:false });
+    const [rw, rr] = await Promise.all([   // NUOVO · vini + recensioni
+      sb.from(TABLE).select('*').order('created_at', { ascending:false }),
+      sb.from(TABLE_REV).select('*')
+    ]);
+    const error = rw.error || rr.error;
     if (error){ console.error(error); toast('Errore nel caricamento'); return; }
-    vini = data || [];
+    vini = mergeVini(rw.data || [], rr.data || []);
     renderAll();
   }
 
@@ -815,7 +882,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         <div class="stat"><div class="stat-v">${bolle}</div><div class="stat-l">Bollicine pronte</div></div>`;
       return;
     }
-    const n = vini.length;
+    const n = vini.filter(v => v._mine).length;   // NUOVO · vini che ho recensito io
     const votati = vini.filter(v => v.voto != null);
     const media = votati.length ? (votati.reduce((a, v) => a + v.voto, 0) / votati.length) : null;
     const rc = vini.filter(v => v.ricomprerei != null);
@@ -894,7 +961,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       if (filtro === 'todo' && v.nome !== 'Da completare') return false;
       if (TIPI.some(t => t.k === filtro) && v.tipo !== filtro) return false;
       if (q){
-        const hay = [v.nome, v.cantina, v.vitigno, v.regione, v.luogo, v.note, v.annata, ...(v.tag || [])].join(' ').toLowerCase();
+        const hay = [v.nome, v.cantina, v.vitigno, v.regione, v.annata, ...v._revs.flatMap(r => [r.luogo, r.note, r.autore, ...(r.tag || [])])].join(' ').toLowerCase();   // NUOVO · cerca in tutte le recensioni
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -930,6 +997,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
             ${v.ricomprerei ? `<svg class="heart" viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.2 3 4.5 6.6 4.5c2.1 0 3.9 1.3 5.4 3.2 1.5-1.9 3.3-3.2 5.4-3.2 3.6 0 5.7 3.7 4.2 7.2C19.5 16.4 12 21 12 21z"/></svg>` : ''}
             ${v.in_cantina ? `<span class="cellar-badge" title="In cantina"><svg viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21V12h6v9"/></svg></span>` : ''}
             <span class="vbadge ${vcls}">${v.voto ?? '–'}</span>
+            ${v._others.map(r => `<span class="vbadge2" title="Voto di ${esc(nameOf(r))}">${esc(nameOf(r).charAt(0).toUpperCase())} <b>${r.voto ?? '–'}</b></span>`).join('')}
             ${t ? `<span class="tbadge"><i style="background:${t.c}"></i>${t.l}</span>` : ''}
           </div>
           <div class="winfo">
@@ -1056,12 +1124,12 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     $('#fNome').value = v.nome === 'Da completare' ? '' : (v.nome || '');
     $('#fCantina').value = v.cantina || '';
     $('#fAnnata').value = v.annata || '';
-    $('#fLuogo').value = v.luogo || '';
+    $('#fLuogo').value = v._mine?.luogo || '';   // NUOVO · luogo della mia recensione
     $('#fNote').value = v.note || '';
     $('#fVitigno').value = v.vitigno || '';
     $('#fRegione').value = v.regione || '';
     $('#fPrezzo').value = v.prezzo != null ? String(v.prezzo).replace('.', ',') : '';
-    $('#fData').value = v.data || todayISO();
+    $('#fData').value = v._mine?.data || todayISO();   // NUOVO · data della mia recensione
     $('#fTemp').value = v.temperatura || '';   // NUOVO
     $('#moreBox').open = !!(v.vitigno || v.regione || v.formato);   // FIX · prezzo e temperatura ora sono campi principali
     $('#formTitle').textContent = 'Modifica vino';
@@ -1125,6 +1193,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Salvo…';
     const done = () => { btn.disabled = false; btn.textContent = 'Salva'; };
     let uploadedPath = null;
+    let wineSaved = false;   // NUOVO · evita doppioni in coda se fallisce solo la recensione
     try {
       let oldPath = null;
       rec.foto_url = F.fotoUrl; rec.foto_path = F.fotoPath; rec.foto_auto = F.fotoAuto;
@@ -1141,9 +1210,12 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       }
       if (!F.fotoUrl && !rec.foto_url) oldPath = F.fotoPath;  // foto rimossa
       let res;
-      if (F.id) res = await sb.from(TABLE).update(rec).eq('id', F.id).select('id').single();
-      else      res = await sb.from(TABLE).insert({ ...rec, user_id: currentUser.id }).select('id').single();
+      const { w, r } = splitRec(rec);   // NUOVO · scheda comune / mia recensione
+      if (F.id) res = await sb.from(TABLE).update(w).eq('id', F.id).select('id').single();
+      else      res = await sb.from(TABLE).insert({ ...w, user_id: currentUser.id }).select('id').single();
       if (res.error) throw res.error;
+      wineSaved = true;
+      await saveReview(res.data.id, r);   // NUOVO
       if (oldPath && oldPath !== rec.foto_path) removePhoto(oldPath);
       done(); closeOv('formOv');
       const needAuto = !rec.foto_url && rec.nome !== 'Da completare';   // NUOVO
@@ -1153,7 +1225,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       if (needAuto && res.data){ autoQueue.push(res.data.id); runAutoQueue(); }
     } catch(e){
       console.error(e);
-      if (!F.id && isNetErr(e)){
+      if (!F.id && !wineSaved && isNetErr(e)){
         if (uploadedPath) removePhoto(uploadedPath);
         const r = { ...rec }; delete r.foto_url; delete r.foto_path; r.foto_auto = false;
         const ok = await enqueue(r, F.blob);
@@ -1163,6 +1235,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         return;
       }
       done();
+      if (wineSaved){ closeOv('formOv'); toast('Vino salvato, ma la tua recensione no: riprova da Modifica', 4000); load(); return; }   // NUOVO
       toast('Errore nel salvataggio: ' + (e.message || e));
     }
   }
@@ -1194,19 +1267,27 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         </div>
         <div class="d-voto${v.voto == null ? ' none' : ''}">${v.voto ?? '–'}<small>/10</small></div>
       </div>
+      ${v._revs.length > 1 && v._media != null ? `<div class="d-media" style="margin:-6px 0 14px;">Voto medio ${v._media.toFixed(1).replace('.', ',')} · ${v._revs.map(r => esc(nameOf(r)) + ' ' + (r.voto ?? '–')).join(' · ')}</div>` : ''}
       <div class="d-grid">
-        ${cell('Data', fmtDate(v.data))}
-        ${cell('Dove', v.luogo)}
         ${cell('Vitigno', v.vitigno)}
         ${cell('Regione', v.regione)}
-        ${cell('Prezzo', v.prezzo != null ? fmtEur(v.prezzo) + (v.formato ? ' · ' + v.formato.toLowerCase() : '') : (v.formato || ''))}
+        ${cell('Prezzo', v.prezzo != null ? fmtEur(v.prezzo) : '')}
         ${v.tipo === 'bollicine' ? cell('Metodo', v.metodo) : ''}
         ${cell('Temperatura di servizio', v.temperatura)}
         ${v.in_cantina != null ? cell('In cantina', v.in_cantina ? 'Sì' : 'No') : ''}
-        ${v.ricomprerei != null ? cell('Lo ricomprerei', v.ricomprerei ? 'Sì' : 'No') : ''}
       </div>
-      ${tags.length ? `<div class="d-tags">${tags.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
-      ${v.note ? `<div class="d-note">${esc(v.note)}</div>` : ''}`;
+      <div class="revs-h">Recensioni</div>
+      ${!v._mine ? `<div class="rev-empty">Non l'hai ancora recensito: tocca <b>Modifica</b> per aggiungere voto e sensazioni.</div>` : ''}
+      ${[v._mine, ...v._others].filter(Boolean).map(r => {
+        const rt = [r.corpo ? 'Corpo ' + r.corpo.toLowerCase() : null, ...(r.tag || [])].filter(Boolean);
+        const meta = [fmtDate(r.data), r.luogo, r.formato, r.ricomprerei != null ? (r.ricomprerei ? 'Lo ricomprerebbe' : 'Non lo ricomprerebbe') : null].filter(Boolean).join(' · ');
+        return `<div class="rev${r === v._mine ? ' me' : ''}">
+          <div class="rev-h"><b>${esc(nameOf(r))}${r === v._mine ? ' (tu)' : ''}</b><span class="rev-v">${r.voto ?? '–'}<small>/10</small></span></div>
+          ${meta ? `<div class="rev-m">${esc(meta)}</div>` : ''}
+          ${rt.length ? `<div class="d-tags">${rt.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
+          ${r.note ? `<div class="d-note">${esc(r.note)}</div>` : ''}
+        </div>`;
+      }).join('')}`;
     $('#dWrong')?.addEventListener('click', () => openWeb('detail'));
   }
 
@@ -1230,7 +1311,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   });
   $('#btnDel').addEventListener('click', async () => {
     const v = vini.find(x => x.id === detailId); if (!v) return;
-    if (!confirm(`Eliminare "${v.nome}"?`)) return;
+    if (!confirm(`Eliminare "${v.nome}" dalla cantina comune?\nSparisce per entrambi, insieme a tutte le recensioni.`)) return;   // NUOVO
     const { error } = await sb.from(TABLE).delete().eq('id', v.id);
     if (error){ toast('Errore eliminazione'); return; }
     removePhoto(v.foto_path);
@@ -1379,6 +1460,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   (async function(){
     const { data: { session } } = await sb.auth.getSession();
     if (!session){ window.location.replace('login.html'); return; }
+    /* NUOVO: accesso solo con 2FA superato (aal2) */ const { data: _aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel(); if (_aal?.currentLevel !== "aal2") { window.location.replace("login.html"); return; }
+    /* NUOVO: pagine consentite per utente (app_metadata.pages; assente = tutte) */ const _pg = session.user.app_metadata?.pages; if (Array.isArray(_pg) && !_pg.includes("vini")) { window.location.replace(_pg.length ? _pg[0] + ".html" : "login.html"); return; }
     currentUser = session.user;
     if (new URLSearchParams(location.search).get('nuovo') === '1') openNew();
     renderQueue();

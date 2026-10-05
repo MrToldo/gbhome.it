@@ -19,7 +19,9 @@
   (async function() {
     const _sb = supabase.createClient(SUPABASE_URL_GUARD, SUPABASE_ANON_GUARD);
     const { data: { session } } = await _sb.auth.getSession();
-    if (!session) window.location.replace("login.html");
+    if (!session) { window.location.replace("login.html"); return; }
+    /* NUOVO: accesso solo con 2FA superato (aal2) */ const { data: _aal } = await _sb.auth.mfa.getAuthenticatorAssuranceLevel(); if (_aal?.currentLevel !== "aal2") { window.location.replace("login.html"); return; }
+    /* NUOVO: pagine consentite per utente (app_metadata.pages; assente = tutte) */ const _pg = session.user.app_metadata?.pages; if (Array.isArray(_pg) && !_pg.includes("journal")) { window.location.replace(_pg.length ? _pg[0] + ".html" : "login.html"); return; }
   })();
 </script>
   <style>
