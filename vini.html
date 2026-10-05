@@ -104,6 +104,10 @@ input,select,textarea{font-family:var(--font-ui);}
 .map-mode{display:flex;gap:6px;margin-bottom:10px;}
 .map-mode button{flex:1;border:1.5px solid transparent;background:var(--bg-panel);color:var(--text-mid);font-weight:800;font-size:13.5px;padding:10px;border-radius:12px;cursor:pointer;}
 .map-mode button.on{border-color:var(--wine);background:var(--wine-glow);color:var(--text-hi);}
+/* NUOVO · avviso mappa vuota */
+.map-box{position:relative;}
+.map-empty{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:500;width:min(86%,340px);background:rgba(16,20,31,.92);border:1px solid var(--wine-ring);border-radius:16px;padding:16px 18px;text-align:center;font-size:13.5px;font-weight:600;color:var(--text-mid);line-height:1.5;}
+.map-empty b{display:block;color:var(--text-hi);font-size:15px;margin-bottom:4px;}
 #map{height:calc(100dvh - 300px);min-height:340px;border-radius:18px;overflow:hidden;background:var(--bg-base);border:1px solid var(--border-soft);}
 .map-note{font-size:12.5px;color:var(--text-mid);font-weight:600;margin-top:10px;line-height:1.5;}
 .map-note button{border:0;background:none;color:var(--wine);font-weight:800;font-size:12.5px;padding:0;cursor:pointer;text-decoration:underline;}
@@ -532,7 +536,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       <button type="button" class="on" data-m="citta">Paesi e città</button>
       <button type="button" data-m="regioni">Regioni</button>
     </div>
-    <div id="map"></div>
+    <div class="map-box"><div id="map"></div><div class="map-empty" id="mapEmpty" hidden></div></div>   <!-- NUOVO · avviso mappa vuota -->
     <div class="map-note" id="mapNote"></div>
   </section>
 
@@ -1133,12 +1137,52 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   const placeQuery = v => [v.localita, v.regione, v.paese].filter(Boolean).join(', ');
 
   /* posizioni mancanti: una richiesta al secondo (regole di OpenStreetMap), poi si salvano sul vino */
+  /* NUOVO · località ricavata dal nome della cantina (solo se OpenStreetMap la conosce come cantina/vigneto) */
+  const TRIED_KEY = 'gb_vini_cantina_cercata';
+  const readTried = () => { try { return JSON.parse(localStorage.getItem(TRIED_KEY) || '{}'); } catch(e){ return {}; } };
+  const markTried = (v) => { const t = readTried(); t[v.id] = normTxt(v.cantina); try { localStorage.setItem(TRIED_KEY, JSON.stringify(t)); } catch(e){} };
+  const cleanCantina = c => String(c || '').replace(/^\s*(cantina|cantine|azienda agricola|az\.?\s*agr\.?|azienda vinicola|vini|winery)\s+/i, '').trim();
+  const isWinery = r => ['winery', 'wine', 'vineyard'].includes(r.type) || r.category === 'craft' || /cantin|vini|winery|wein|bodega|domaine|chateau|ch[aâ]teau/i.test(r.name || '');
+  async function findWinery(v){
+    const name = cleanCantina(v.cantina);
+    if (name.length < 3) return null;
+    const qs = [[name, v.regione, v.paese].filter(Boolean).join(', '), name];
+    for (const q of [...new Set(qs)]){
+      const u = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&accept-language=it&q=' + encodeURIComponent(q);
+      const r = await fetch(u, { headers: { 'Accept': 'application/json' } });
+      await sleep(1100);
+      if (!r.ok) continue;
+      const hit = (await r.json()).find(isWinery);
+      if (hit){
+        const a = hit.address || {};
+        const loc = a.village || a.town || a.city || a.municipality || a.hamlet || a.suburb;
+        if (loc) return { localita: loc, regione: a.state || null, paese: a.country || null, lat: parseFloat(hit.lat), lng: parseFloat(hit.lon) };
+      }
+    }
+    return null;
+  }
+
   async function geocodeMissing(){
     if (geoBusy) return;
+    const tried = readTried();
+    const fromCantina = vini.filter(v => !v.localita && v.cantina && tried[v.id] !== normTxt(v.cantina));   // NUOVO
     const todo = vini.filter(v => v.localita && (v.lat == null || v.lng == null) && !v._geoFail);
-    if (!todo.length) return;
+    if (!todo.length && !fromCantina.length) return;
     geoBusy = true; renderMapNote();
     let ok = 0;
+    for (const v of fromCantina){   // NUOVO
+      try {
+        const f = await findWinery(v);
+        markTried(v);
+        if (f){
+          const patch = { localita: f.localita, lat: f.lat, lng: f.lng };
+          if (!v.regione && f.regione) patch.regione = f.regione;
+          if (!v.paese && f.paese && normTxt(f.paese) !== 'italia') patch.paese = f.paese;
+          const { error } = await sb.from(TABLE).update(patch).eq('id', v.id);
+          if (!error){ Object.assign(v, patch); ok++; }
+        }
+      } catch(e){ console.error(e); }
+    }
     for (const v of todo){
       try {
         const ll = await nominatim(placeQuery(v));
@@ -1229,6 +1273,12 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
           .addTo(mapLayer);
       }
     }
+    /* NUOVO · avviso se non c'è niente da mostrare */
+    const emptyEl = $('#mapEmpty');
+    emptyEl.hidden = pts.length > 0 || (geoBusy && mapMode === 'citta');
+    if (!pts.length) emptyEl.innerHTML = mapMode === 'citta'
+      ? `<b>Nessun vino con la località</b>Apri un vino, tocca Modifica e scrivi la "Località cantina" (es. Barolo, Valdobbiadene). Se la cantina è su OpenStreetMap la trovo da solo.`
+      : `<b>Nessun vino con la regione</b>Apri un vino, tocca Modifica e scrivi la "Regione".`;
     if (pts.length === 1) map.setView(pts[0], mapMode === 'citta' ? 9 : 7);
     else if (pts.length) map.fitBounds(pts, { padding: [36, 36], maxZoom: 9 });
     renderMapNote();
@@ -1238,7 +1288,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     const pending = vini.filter(v => v.localita && v.lat == null && !v._geoFail).length;
     const failed = vini.filter(v => v._geoFail).map(v => v.localita);
     const parts = [];
-    if (geoBusy || pending) parts.push(`Cerco la posizione di ${pending} ${pending === 1 ? 'vino' : 'vini'}…`);
+    if (geoBusy || pending) parts.push(geoBusy ? 'Cerco le posizioni su OpenStreetMap…' : `Cerco la posizione di ${pending} ${pending === 1 ? 'vino' : 'vini'}…`);
     if (noLoc) parts.push(`${noLoc} ${noLoc === 1 ? 'vino non ha' : 'vini non hanno'} ${mapMode === 'citta' ? 'la località della cantina' : 'la regione'}: aggiungila da Modifica.`);
     if (failed.length) parts.push(`Località non trovate: ${esc([...new Set(failed)].join(', '))}.`);
     parts.push('Colore: <span style="color:#ff6b8a">●</span> 8+ · <span style="color:#e8a33c">●</span> 6,5-8 · <span style="color:#9aa5bb">●</span> sotto · <span style="color:#5f6b83">●</span> senza voto');
