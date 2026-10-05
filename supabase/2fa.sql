@@ -41,7 +41,7 @@ declare t record;
 begin
   for t in select tablename from pg_tables
            where schemaname = 'public' and rowsecurity
-             and tablename not in ('vini', 'dashboard_config') loop
+             and tablename not in ('vini', 'vini_recensioni', 'dashboard_config', 'dashboard_state') loop
     execute format('drop policy if exists "solo_utenti_completi" on public.%I', t.tablename);
     execute format(
       'create policy "solo_utenti_completi" on public.%I as restrictive for all to authenticated
