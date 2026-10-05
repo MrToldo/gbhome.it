@@ -128,7 +128,7 @@ function leggiFeed(xml: string, fonte: string, lingua: string): Voce[] {
   return out;
 }
 
-const normTitolo = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+const normTitolo = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
 /* ══ Aggiornamento ══ */
 async function aggiorna(db: any) {
