@@ -1379,6 +1379,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   (async function(){
     const { data: { session } } = await sb.auth.getSession();
     if (!session){ window.location.replace('login.html'); return; }
+    /* NUOVO: accesso solo con 2FA superato (aal2) */ const { data: _aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel(); if (_aal?.currentLevel !== "aal2") { window.location.replace("login.html"); return; }
     currentUser = session.user;
     if (new URLSearchParams(location.search).get('nuovo') === '1') openNew();
     renderQueue();

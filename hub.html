@@ -1373,6 +1373,7 @@
   (async function(){
     const { data: { session } } = await sb.auth.getSession();
     if (!session){ window.location.replace('login.html'); return; }
+    /* NUOVO: accesso solo con 2FA superato (aal2) */ const { data: _aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel(); if (_aal?.currentLevel !== "aal2") { window.location.replace("login.html"); return; }
     currentUser = session.user;
     loadReminders();
   })();

@@ -18,7 +18,8 @@
   window.__sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
   (async function () {
     const { data: { session } } = await window.__sb.auth.getSession();
-    if (!session) window.location.replace("login.html");
+    if (!session) { window.location.replace("login.html"); return; }
+    /* NUOVO: accesso solo con 2FA superato (aal2) */ const { data: _aal } = await window.__sb.auth.mfa.getAuthenticatorAssuranceLevel(); if (_aal?.currentLevel !== "aal2") { window.location.replace("login.html"); return; }
   })();
 </script>
 <style>

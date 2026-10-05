@@ -10,8 +10,6 @@
 <link rel="apple-touch-icon" sizes="180x180" href="image/apple-touch-icon.png">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/otpauth@9/dist/otpauth.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    GB-SUITE · FINTECH NAVY THEME (allineato a journal.html)
@@ -355,41 +353,30 @@ function wireOtp(rowId, btnId) {
 const otp2FA   = wireOtp('otpRow', 'btn2FA');
 const otpSetup = wireOtp('setupOtpRow', 'btnSetup');
 
-/* ══ TOTP ══ */
-function generateSecret() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  const arr   = new Uint8Array(20);
-  crypto.getRandomValues(arr);
-  return Array.from(arr).map(b => chars[b%32]).join('');
-}
-function verifyTOTP(secret, code) {
-  try {
-    const totp = new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(secret), digits:6, period:30 });
-    return totp.validate({ token: code, window: 1 }) !== null;
-  } catch(e) { return false; }
-}
-function buildOtpUrl(secret, email) {
-  return new OTPAuth.TOTP({ issuer:APP_NAME, label:email, secret:OTPAuth.Secret.fromBase32(secret), digits:6, period:30 }).toString();
-}
+/* ═══ NUOVO: MFA NATIVO SUPABASE ═══
+   Il segreto TOTP resta sul server di Supabase (non è più leggibile dal browser)
+   e solo dopo il codice corretto la sessione passa al livello "aal2".
+   Le pagine accettano soltanto sessioni aal2. */
+let currentFactorId = null;
 
-/* ══ SUPABASE DB ══ */
-async function getProfile(uid) {
-  const { data, error } = await sb.from('profiles').select('totp_secret,totp_enabled').eq('id', uid).single();
-  if (error && error.code !== 'PGRST116') throw error;
-  return data;
-}
-async function saveSecret(uid, secret) {
-  const { error } = await sb.from('profiles').upsert({ id:uid, totp_secret:secret, totp_enabled:false }, { onConflict:'id' });
+async function getVerifiedTotp() {
+  const { data, error } = await sb.auth.mfa.listFactors();
   if (error) throw error;
+  return (data?.totp || []).find(f => f.status === 'verified') || null;
 }
-async function enableTotp(uid) {
-  const { error } = await sb.from('profiles').update({ totp_enabled:true }).eq('id', uid);
-  if (error) throw error;
+async function removeUnverifiedTotp() {
+  const { data } = await sb.auth.mfa.listFactors();
+  const pending = (data?.all || []).filter(f => f.factor_type === 'totp' && f.status !== 'verified');
+  for (const f of pending) { try { await sb.auth.mfa.unenroll({ factorId: f.id }); } catch(e) {} }
 }
+async function verifyCode(code) {
+  const { error } = await sb.auth.mfa.challengeAndVerify({ factorId: currentFactorId, code });
+  return !error;
+}
+/* ═══ FINE NUOVO ═══ */
 
 /* ══ STEP 1: LOGIN ══ */
 let currentUser   = null;
-let pendingSecret = null;
 
 document.getElementById('email').addEventListener('keydown',    e => { if(e.key==='Enter') document.getElementById('password').focus(); });
 document.getElementById('password').addEventListener('keydown', e => { if(e.key==='Enter') handleLogin(); });
@@ -411,11 +398,12 @@ async function handleLogin() {
   }
 
   currentUser = data.user;
-  let profile = null;
-  try { profile = await getProfile(currentUser.id); } catch(e) {}
+  let factor = null;
+  try { factor = await getVerifiedTotp(); } catch(e) {}
   setLoading('btnLogin','btnLoginText', false, 'Accedi');
 
-  if (profile?.totp_enabled && profile?.totp_secret) {
+  if (factor) {
+    currentFactorId = factor.id;
     setStep(2); showPanel('panel2FA'); otp2FA.reset();
   } else {
     await startSetup2FA(currentUser);
@@ -426,17 +414,20 @@ async function handleLogin() {
 async function startSetup2FA(user) {
   setStep(2); showPanel('panelSetup'); hideAlert('alertSetup'); otpSetup.reset();
 
-  pendingSecret = generateSecret();
-  try { await saveSecret(user.id, pendingSecret); }
-  catch(e) { showPanel('panelLogin'); setStep(1); showAlert('alertLogin','Errore salvataggio 2FA: '+e.message); return; }
+  await removeUnverifiedTotp();
+  const { data, error } = await sb.auth.mfa.enroll({ factorType:'totp', issuer:APP_NAME, friendlyName:APP_NAME+' '+Date.now() });
+  if (error) { showPanel('panelLogin'); setStep(1); showAlert('alertLogin','Errore attivazione 2FA: '+error.message); return; }
+  currentFactorId = data.id;
 
-  // Genera QR
-  const otpUrl = buildOtpUrl(pendingSecret, user.email);
-  const qrDiv  = document.getElementById('qrDiv');
+  // QR generato da Supabase (SVG)
+  const qrDiv = document.getElementById('qrDiv');
   qrDiv.innerHTML = '';
-  new QRCode(qrDiv, { text: otpUrl, width: 144, height: 144, colorDark:'#000000', colorLight:'#ffffff' });
+  const img = new Image(144, 144);
+  img.alt = 'QR 2FA'; img.style.background = '#fff'; img.style.display = 'block';
+  img.src = data.totp.qr_code;
+  qrDiv.appendChild(img);
 
-  document.getElementById('secretBox').textContent = pendingSecret;
+  document.getElementById('secretBox').textContent = data.totp.secret;
 }
 
 function copySecret() {
@@ -450,14 +441,14 @@ function copySecret() {
 document.getElementById('btnSetup').addEventListener('click', async () => {
   hideAlert('alertSetup'); otpSetup.clearError();
   const code = otpSetup.getCode();
-  if (!verifyTOTP(pendingSecret, code)) {
+  setLoading('btnSetup','btnSetupText', true, 'Attivazione…');
+  if (!(await verifyCode(code))) {
+    setLoading('btnSetup','btnSetupText', false, 'Attiva e accedi');
     otpSetup.setError();
     showAlert('alertSetup','Codice non valido. Controlla l\'app e riprova.');
     otpSetup.reset(); return;
   }
-  setLoading('btnSetup','btnSetupText', true, 'Attivazione…');
-  try { await enableTotp(currentUser.id); goToSuccess(); }
-  catch(e) { setLoading('btnSetup','btnSetupText', false, 'Attiva e accedi'); showAlert('alertSetup','Errore: '+e.message); }
+  goToSuccess();
 });
 
 /* ══ STEP 2b: VERIFICA ══ */
@@ -466,11 +457,7 @@ document.getElementById('btn2FA').addEventListener('click', handle2FA);
 async function handle2FA() {
   hideAlert('alert2FA'); otp2FA.clearError();
   setLoading('btn2FA','btn2FAText', true, 'Verifica…');
-  let profile;
-  try { profile = await getProfile(currentUser.id); }
-  catch(e) { setLoading('btn2FA','btn2FAText', false, 'Verifica'); showAlert('alert2FA','Errore lettura profilo.'); return; }
-
-  if (!verifyTOTP(profile.totp_secret, otp2FA.getCode())) {
+  if (!(await verifyCode(otp2FA.getCode()))) {
     setLoading('btn2FA','btn2FAText', false, 'Verifica');
     otp2FA.setError(); otp2FA.reset();
     showAlert('alert2FA','Codice errato o scaduto. Genera un nuovo codice dall\'estensione.');
@@ -480,7 +467,7 @@ async function handle2FA() {
 }
 
 document.getElementById('btnBackLogin').addEventListener('click', async () => {
-  await sb.auth.signOut(); clearTrust(); currentUser = null;
+  await sb.auth.signOut(); clearTrust(); currentUser = null; currentFactorId = null;
   setStep(1); showPanel('panelLogin'); hideAlert('alertLogin');
 });
 
@@ -506,11 +493,12 @@ function tradErr(msg) {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
   currentUser = session.user;
-  let profile;
-  try { profile = await getProfile(currentUser.id); } catch(e) {}
+  let factor = null, aal = null;
+  try { factor = await getVerifiedTotp(); } catch(e) {}
+  try { aal = (await sb.auth.mfa.getAuthenticatorAssuranceLevel()).data; } catch(e) {}
 
-  if (profile?.totp_enabled && profile?.totp_secret) {
-    if (isTrustedToday()) {
+  if (factor) {
+    if (isTrustedToday() && aal?.currentLevel === 'aal2') {
       // 2FA già verificato oggi su questo dispositivo: accesso diretto, nessuna richiesta.
       window.location.href = HUB_URL;
       return;
@@ -519,7 +507,7 @@ function tradErr(msg) {
     // si forza un login completo (email + password + 2FA), non solo il codice.
     await sb.auth.signOut();
     clearTrust();
-    currentUser = null;
+    currentUser = null; currentFactorId = null;
     setStep(1); showPanel('panelLogin'); hideAlert('alertLogin');
     return;
   } else {
