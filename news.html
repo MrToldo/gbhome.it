@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#10141f">
+<title>GB Suite · News</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="image/logo.svg">
+<link rel="icon" type="image/x-icon" href="image/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="image/apple-touch-icon.png">
+<style>
+  :root[data-theme="dark"]{
+    --bg:#10141f;
+    --panel:#1a2130;
+    --panel-2:#222b3d;
+    --panel-hover:#2a3448;
+    --border:rgba(255,255,255,0.05);
+    --border-strong:rgba(255,255,255,0.12);
+    --text:#f4f6fb;
+    --text-dim:#9aa5bb;
+    --text-lo:#5f6b83;
+    --accent:#00d68f;
+    --accent-bright:#00e69c;
+    --accent-dim:rgba(0,214,143,0.13);
+    --news:#5ab4ff;
+    --news-dim:rgba(90,180,255,0.13);
+    --high:#ff6b6b;
+    --med:#f5a623;
+    --shadow:rgba(5,8,16,0.55);
+    --sans:'Manrope',-apple-system,sans-serif;
+    --serif:'Newsreader',Georgia,serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{min-height:100%;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased;letter-spacing:.005em;}
+  body.locked{overflow:hidden;}
+  ::selection{background:rgba(90,180,255,0.3);}
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:5px;border:2px solid var(--bg);}
+  :focus-visible{outline:2px solid var(--news);outline-offset:2px;border-radius:4px;}
+  button{font-family:inherit;}
+
+  /* ── TOPBAR ── */
+  .topbar{
+    background:rgba(16,20,31,0.85);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+    min-height:66px;padding:14px 40px;padding-top:max(14px,env(safe-area-inset-top));
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    position:sticky;top:0;z-index:50;box-shadow:0 10px 30px -18px var(--shadow);
+  }
+  .brand-lockup{display:flex;align-items:center;gap:13px;text-decoration:none;border-radius:12px;padding:2px;}
+  .brand-lockup:hover{opacity:.85;}
+  .brand-mark{width:38px;height:38px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(150deg,#00e69c 0%,#00b478 100%);box-shadow:0 8px 20px -8px rgba(0,214,143,.55),inset 0 1px 0 rgba(255,255,255,.3);}
+  .brand-mark svg{width:21px;height:21px;stroke:#04140d;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;}
+  .brand-text{display:flex;flex-direction:column;gap:3px;line-height:1;}
+  .brand-title{color:var(--text);font-weight:800;font-size:16px;letter-spacing:.12em;text-transform:uppercase;}
+  .brand-title span{color:var(--accent);}
+  .brand-sub{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--text-lo);}
+  .topbar-right{display:flex;align-items:center;gap:8px;}
+  .icon-btn{
+    display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 13px;border-radius:11px;
+    border:1px solid var(--border-strong);background:var(--panel);color:var(--text-dim);
+    font-size:12.5px;font-weight:700;cursor:pointer;transition:color .16s,background .16s,border-color .16s;
+  }
+  .icon-btn:hover{color:var(--text);background:var(--panel-2);}
+  .icon-btn svg{width:16px;height:16px;flex-shrink:0;}
+  .icon-btn.spin svg{animation:spin .9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* barra di avanzamento aggiornamento */
+  .progress{position:fixed;top:0;left:0;right:0;height:2px;z-index:60;overflow:hidden;opacity:0;transition:opacity .3s;}
+  .progress.on{opacity:1;}
+  .progress::after{content:"";position:absolute;inset:0;width:35%;background:linear-gradient(90deg,transparent,var(--news),transparent);animation:slide 1.3s ease-in-out infinite;}
+  @keyframes slide{from{transform:translateX(-100%);}to{transform:translateX(300%);}}
+
+  /* ── MASTHEAD ── */
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 32px 64px;}
+  .masthead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--border-strong);}
+  .masthead h1{font-family:var(--serif);font-weight:700;font-size:44px;letter-spacing:-.01em;line-height:1;}
+  .masthead h1 em{font-style:normal;color:var(--news);}
+  .masthead .day{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;}
+  .status{font-family:var(--mono);font-size:11px;color:var(--text-lo);text-align:right;line-height:1.6;}
+  .status b{color:var(--text-dim);font-weight:600;}
+  .status .err{color:var(--high);}
+
+  /* ── TABS TEMI ── */
+  .tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:16px 0 4px;margin:0 -4px;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{
+    flex-shrink:0;display:inline-flex;align-items:center;gap:8px;
+    border:1px solid var(--border-strong);background:transparent;color:var(--text-dim);
+    font-size:13px;font-weight:700;padding:8px 14px;border-radius:999px;cursor:pointer;margin:0 2px;
+    transition:background .16s,color .16s,border-color .16s;
+  }
+  .tab:hover{color:var(--text);background:var(--panel);}
+  .tab .n{font-family:var(--mono);font-size:10.5px;color:var(--text-lo);}
+  .tab.active{background:var(--news-dim);border-color:rgba(90,180,255,.45);color:#cfe7ff;}
+  .tab.active .n{color:var(--news);}
+
+  .filters{display:flex;gap:10px;align-items:center;padding:12px 0 22px;flex-wrap:wrap;}
+  .search{flex:1;min-width:200px;position:relative;}
+  .search input{width:100%;height:40px;border-radius:11px;border:1px solid var(--border-strong);background:var(--panel);color:var(--text);
+    padding:0 14px 0 38px;font-family:var(--sans);font-size:14px;font-weight:600;}
+  .search input::placeholder{color:var(--text-lo);}
+  .search svg{position:absolute;left:12px;top:12px;width:16px;height:16px;color:var(--text-lo);}
+  select.sel{height:40px;border-radius:11px;border:1px solid var(--border-strong);background:var(--panel);color:var(--text-dim);
+    padding:0 12px;font-family:var(--sans);font-size:13px;font-weight:700;}
+
+  /* ── NOTIZIE ── */
+  .lead{display:grid;grid-template-columns:1.35fr 1fr;gap:22px;margin-bottom:26px;}
+  .story{
+    background:var(--panel);border:1px solid rgba(255,255,255,0.04);border-radius:18px;
+    padding:18px 20px;cursor:pointer;display:flex;flex-direction:column;gap:9px;
+    transition:transform .18s var(--ease),background .18s,border-color .18s;text-align:left;color:inherit;width:100%;
+  }
+  .story:hover{background:var(--panel-2);border-color:var(--border-strong);transform:translateY(-1px);}
+  .kicker{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--news);}
+  .kicker .paese{color:var(--text-lo);}
+  .kicker .hot{color:var(--high);display:inline-flex;align-items:center;gap:5px;}
+  .kicker .hot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--high);box-shadow:0 0 8px var(--high);}
+  .story h2{font-family:var(--serif);font-weight:600;font-size:20px;line-height:1.22;letter-spacing:-.005em;}
+  .story p{font-size:13.5px;line-height:1.55;color:var(--text-dim);}
+  .meta{margin-top:auto;padding-top:6px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:var(--mono);font-size:10.5px;color:var(--text-lo);}
+  .sources{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;white-space:nowrap;}
+  .src{color:var(--text-dim);font-weight:600;}
+  .src-more{background:var(--panel-hover);color:var(--text-dim);border-radius:5px;padding:1px 6px;}
+  .lang{border:1px solid var(--border-strong);border-radius:5px;padding:0 5px;font-size:9px;letter-spacing:.08em;}
+
+  .story.hero{padding:0;overflow:hidden;}
+  .story.hero .img{aspect-ratio:16/8.5;background:var(--panel-2) center/cover no-repeat;}
+  .story.hero .body{padding:18px 22px 20px;display:flex;flex-direction:column;gap:10px;flex:1;}
+  .story.hero h2{font-size:30px;line-height:1.12;}
+  .story.hero p{font-size:15px;}
+  .lead-side{display:flex;flex-direction:column;gap:14px;}
+  .lead-side .story{flex:1;}
+
+  .section-head{display:flex;align-items:center;gap:12px;margin:6px 0 14px;}
+  .section-head h3{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lo);white-space:nowrap;}
+  .section-head .line{flex:1;height:1px;background:var(--border-strong);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;}
+  .story .row{display:flex;gap:14px;align-items:flex-start;}
+  .story .row > div:first-child{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;}
+  .thumb{width:84px;height:84px;border-radius:12px;flex-shrink:0;background:var(--panel-2) center/cover no-repeat;}
+
+  .state{padding:70px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--text-dim);}
+  .state h2{font-size:17px;color:var(--text);}
+  .state p{font-size:13.5px;max-width:420px;line-height:1.55;}
+  .spinner{width:26px;height:26px;border-radius:50%;border:2.5px solid var(--border-strong);border-top-color:var(--news);animation:spin .8s linear infinite;}
+
+  /* ── LETTORE ── */
+  .overlay{position:fixed;inset:0;background:rgba(5,8,16,.62);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);z-index:80;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .overlay.on{opacity:1;pointer-events:auto;}
+  .reader{
+    position:fixed;top:0;right:0;bottom:0;width:min(760px,100%);z-index:90;background:#121825;
+    border-left:1px solid var(--border-strong);box-shadow:-30px 0 60px -20px var(--shadow);
+    transform:translateX(100%);transition:transform .32s var(--ease);display:flex;flex-direction:column;
+  }
+  .reader.on{transform:none;}
+  .reader-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 20px;padding-top:max(14px,env(safe-area-inset-top));border-bottom:1px solid var(--border);}
+  .reader-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;}
+  .reader-tabs::-webkit-scrollbar{display:none;}
+  .reader-tabs .tab{padding:6px 11px;font-size:12px;}
+  .reader-body{flex:1;overflow-y:auto;padding:26px 40px 60px;-webkit-overflow-scrolling:touch;}
+  .reader-body .kicker{margin-bottom:12px;}
+  .reader-body h1{font-family:var(--serif);font-size:32px;line-height:1.15;font-weight:700;margin-bottom:14px;}
+  .reader-body .lede{font-size:15px;line-height:1.6;color:var(--text-dim);padding:14px 16px;background:var(--panel);border-radius:12px;border-left:3px solid var(--news);margin-bottom:22px;}
+  .art-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--text-lo);}
+  .art-head b{color:var(--text-dim);}
+  .badge-tr{color:var(--news);background:var(--news-dim);border-radius:6px;padding:2px 8px;font-weight:700;letter-spacing:.06em;}
+  .art h2{font-family:var(--serif);font-size:23px;line-height:1.25;margin:4px 0 14px;}
+  .art p{font-family:var(--serif);font-size:19px;line-height:1.65;color:#dfe4ee;margin-bottom:16px;}
+  .art h3{font-size:16px;font-weight:800;margin:24px 0 10px;}
+  .orig-link{display:inline-flex;align-items:center;gap:8px;margin-top:10px;color:var(--news);font-weight:700;font-size:14px;text-decoration:none;}
+  .orig-link:hover{text-decoration:underline;}
+  .blocked{padding:18px;border-radius:12px;background:var(--panel);color:var(--text-dim);font-size:14px;line-height:1.55;}
+
+  /* ── GESTIONE TEMI / FONTI ── */
+  .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:95;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s;}
+  .modal.on{opacity:1;pointer-events:auto;}
+  .modal-card{width:min(680px,100%);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--border-strong);border-radius:20px;padding:22px 22px 18px;box-shadow:0 30px 70px -20px var(--shadow);}
+  .modal-card h2{font-size:19px;font-weight:800;margin-bottom:4px;}
+  .modal-card .sub{font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.5;}
+  .mtabs{display:flex;gap:6px;margin-bottom:16px;}
+  .item{display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px;background:var(--panel-2);border-radius:12px;margin-bottom:8px;}
+  .item input,.item select,.add input,.add select{width:100%;height:36px;border-radius:9px;border:1px solid var(--border-strong);background:var(--bg);color:var(--text);padding:0 10px;font-family:var(--sans);font-size:13.5px;font-weight:600;}
+  .item .fields{display:flex;flex-direction:column;gap:6px;min-width:0;}
+  .item .two{display:grid;grid-template-columns:1fr 70px;gap:6px;}
+  .item .hint{font-family:var(--mono);font-size:10px;color:var(--text-lo);}
+  .item .hint.err{color:var(--high);}
+  .item .actions{display:flex;flex-direction:column;gap:6px;}
+  .small-btn{height:36px;min-width:36px;padding:0 10px;border-radius:9px;border:1px solid var(--border-strong);background:transparent;color:var(--text-dim);cursor:pointer;font-weight:700;font-size:12px;}
+  .small-btn:hover{color:var(--text);background:var(--panel-hover);}
+  .small-btn.del:hover{color:var(--high);}
+  .small-btn.on{color:var(--accent);border-color:rgba(0,214,143,.4);}
+  .add{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+  .add .fields{display:flex;flex-direction:column;gap:6px;}
+  .primary{height:36px;padding:0 16px;border-radius:9px;border:none;background:var(--news);color:#04121f;font-weight:800;cursor:pointer;}
+  .modal-foot{display:flex;justify-content:flex-end;margin-top:14px;}
+
+  @media(max-width:900px){
+    .lead{grid-template-columns:1fr;}
+  }
+  @media(max-width:600px){
+    .topbar{padding:12px 16px;}
+    .brand-text{display:none;}
+    .icon-btn .lbl{display:none;}
+    .wrap{padding:20px 16px 48px;}
+    .masthead h1{font-size:34px;}
+    .status{text-align:left;}
+    .story.hero h2{font-size:24px;}
+    .grid{grid-template-columns:1fr;}
+    .reader-body{padding:20px 18px 50px;}
+    .reader-body h1{font-size:26px;}
+    .art p{font-size:18px;}
+    .thumb{width:72px;height:72px;}
+  }
+  @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;}}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <a class="brand-lockup" href="hub.html" aria-label="Torna alla Hub">
+    <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 15l4-5 4 3 5-7"/><path d="M14 6h5v5"/></svg></div>
+    <div class="brand-text"><div class="brand-title">GB <span>SUITE</span></div><div class="brand-sub">Trading hub</div></div>
+  </a>
+  <div class="topbar-right">
+    <button class="icon-btn" id="btnAggiorna" type="button" title="Aggiorna le notizie">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+      <span class="lbl">Aggiorna</span>
+    </button>
+    <button class="icon-btn" id="btnGestisci" type="button" title="Temi e fonti">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+      <span class="lbl">Temi e fonti</span>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="masthead">
+    <div>
+      <div class="day" id="oggi">—</div>
+      <h1>La rassegna <em>di oggi</em></h1>
+    </div>
+    <div class="status" id="status">—</div>
+  </div>
+
+  <nav class="tabs" id="tabs" aria-label="Temi"></nav>
+
+  <div class="filters">
+    <label class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="cerca" type="search" placeholder="Cerca tra le notizie… (es. Cina, BCE, Nvidia)" autocomplete="off">
+    </label>
+    <select class="sel" id="filtroCat" aria-label="Categoria"><option value="">Tutte le categorie</option></select>
+    <select class="sel" id="filtroPaese" aria-label="Paese"><option value="">Tutti i paesi</option></select>
+  </div>
+
+  <div id="contenuto">
+    <div class="state"><div class="spinner"></div><p>Carico le notizie…</p></div>
+  </div>
+</main>
+
+<!-- LETTORE -->
+<div class="overlay" id="overlay"></div>
+<aside class="reader" id="reader" aria-hidden="true">
+  <div class="reader-top">
+    <div class="reader-tabs" id="readerTabs"></div>
+    <button class="icon-btn" id="btnChiudi" type="button" aria-label="Chiudi">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <div class="reader-body" id="readerBody"></div>
+</aside>
+
+<!-- TEMI E FONTI -->
+<div class="modal" id="modal">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <h2 id="mTitle">Temi e fonti</h2>
+    <div class="sub">I <b>temi</b> sono le tue rubriche: scrivi le parole chiave separate da virgola (settori, paesi, aziende) e la pagina ti mostra le notizie più importanti su quell'argomento. Le <b>fonti</b> sono i feed RSS dei giornali.</div>
+    <div class="mtabs">
+      <button class="tab active" data-m="temi" type="button">Temi</button>
+      <button class="tab" data-m="fonti" type="button">Fonti</button>
+    </div>
+    <div id="mBody"></div>
+    <div class="modal-foot"><button class="primary" id="mChiudi" type="button">Fatto</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  /* ══ CONFIG ══ */
+  const SUPABASE_URL  = "https://wgyjsnvygmxfheiubfjo.supabase.co";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndneWpzbnZ5Z214ZmhlaXViZmpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4Njg1NzQsImV4cCI6MjA5NzQ0NDU3NH0.bgb3wAgYQt6omORw47MNgW6VYVITRdj5v6R68FeXsSY";
+  const FN_URL = SUPABASE_URL + "/functions/v1/news";
+  const MINUTI_FRESCHEZZA = 15;   // oltre questo tempo la pagina aggiorna da sola
+
+  const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  /* ══ STATO ══ */
+  let storie = [], temi = [], fonti = [], stato = null;
+  let vista = "prima";   // "prima" | "tutte" | id tema
+  let aggiornando = false;
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const norm = (s) => " " + String(s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim() + " ";
+
+  function fa(iso) {
+    const min = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000));
+    if (min < 1) return "ora";
+    if (min < 60) return min + " min fa";
+    const h = Math.round(min / 60);
+    if (h < 24) return h + " h fa";
+    return new Date(iso).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+  }
+
+  /* ══ ACCESSO ══ */
+  (async function () {
+    const { data: { session } } = await _sb.auth.getSession();
+    if (!session) { window.location.replace("login.html"); return; }
+    const { data: _aal } = await _sb.auth.mfa.getAuthenticatorAssuranceLevel(); if (_aal?.currentLevel !== "aal2") { window.location.replace("login.html"); return; }
+    const _pg = session.user.app_metadata?.pages; if (Array.isArray(_pg) && !_pg.includes("news")) { window.location.replace(_pg.length ? _pg[0] + ".html" : "login.html"); return; }
+    avvia();
+  })();
+
+  async function chiamaFunzione(body) {
+    const { data: { session } } = await _sb.auth.getSession();
+    const r = await fetch(FN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + session.access_token, "apikey": SUPABASE_ANON },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || data.error) throw new Error(data.error || ("Errore " + r.status));
+    return data;
+  }
+
+  /* ══ DATI ══ */
+  async function caricaDati() {
+    const da = new Date(Date.now() - 48 * 3600e3).toISOString();
+    const [s, t, f, st] = await Promise.all([
+      _sb.from("news_storie").select("*").gte("pubblicata", da).order("pubblicata", { ascending: false }).limit(600),
+      _sb.from("news_temi").select("*").order("ordine"),
+      _sb.from("news_fonti").select("*").order("nome"),
+      _sb.from("news_stato").select("*").eq("id", 1).maybeSingle(),
+    ]);
+    if (s.error) throw new Error(s.error.message);
+    storie = (s.data ?? []).map((x) => ({ ...x, _txt: norm([x.titolo_it, x.sommario_it, x.paese, x.categoria, ...(x.fonti ?? []).map((f) => f.titolo)].join(" ")) }));
+    temi = t.data ?? []; fonti = f.data ?? []; stato = st.data;
+  }
+
+  async function avvia() {
+    $("oggi").textContent = new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
+    try { await caricaDati(); }
+    catch (e) { mostraErrore(e.message); return; }
+    disegna();
+    const ultimo = stato?.ultimo_aggiornamento ? new Date(stato.ultimo_aggiornamento) : null;
+    if (!ultimo || Date.now() - ultimo > MINUTI_FRESCHEZZA * 60e3) aggiorna();
+  }
+
+  async function aggiorna() {
+    if (aggiornando) return;
+    aggiornando = true;
+    $("btnAggiorna").classList.add("spin"); $("progress").classList.add("on");
+    try {
+      for (let giro = 0; giro < 4; giro++) {      // se restano articoli in coda si fa un altro giro
+        const r = await chiamaFunzione({ action: "aggiorna" });
+        await caricaDati(); disegna();
+        if (r.in_corso || !r.in_coda) break;
+      }
+    } catch (e) {
+      stato = { ...(stato ?? {}), esito: "errore · " + e.message };
+      disegnaStato();
+    } finally {
+      aggiornando = false;
+      $("btnAggiorna").classList.remove("spin"); $("progress").classList.remove("on");
+    }
+  }
+
+  /* ══ PUNTEGGIO ══ */
+  function punteggio(s) {
+    const ore = (Date.now() - new Date(s.pubblicata)) / 3600e3;
+    return s.importanza * 10 + (Math.min(s.n_fonti, 6) - 1) * 7 - ore * 1.3;
+  }
+  function paroleTema(t) { return (t.parole ?? []).map(norm).filter((p) => p.trim()); }
+  function inTema(s, t) {
+    // la parola chiave vale anche come inizio di parola: "tass" trova "tassi"
+    return paroleTema(t).some((p) => s._txt.includes(p.slice(0, -1)));
+  }
+
+  function filtrate() {
+    const q = norm($("cerca").value).trim();
+    const cat = $("filtroCat").value, paese = $("filtroPaese").value;
+    let lista = storie.filter((s) =>
+      (!q || q.split(" ").every((w) => s._txt.includes(" " + w))) &&
+      (!cat || s.categoria === cat) && (!paese || s.paese === paese));
+    if (vista === "prima") {
+      const ieri = Date.now() - 24 * 3600e3;
+      lista = lista.filter((s) => new Date(s.pubblicata) > ieri);
+      // bonus per le notizie che toccano i tuoi temi
+      return lista.map((s) => ({ s, p: punteggio(s) + (temi.some((t) => inTema(s, t)) ? 6 : 0) }))
+        .sort((a, b) => b.p - a.p).map((x) => x.s).slice(0, 60);
+    }
+    if (vista === "tutte") return lista;
+    const t = temi.find((x) => x.id === vista);
+    return t ? lista.filter((s) => inTema(s, t)).sort((a, b) => punteggio(b) - punteggio(a)) : lista;
+  }
+
+  /* ══ DISEGNO ══ */
+  function disegnaStato() {
+    const n = storie.length, nf = fonti.filter((f) => f.attiva).length;
+    const quando = stato?.ultimo_aggiornamento ? new Date(stato.ultimo_aggiornamento).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "mai";
+    const err = String(stato?.esito ?? "").startsWith("errore") ? `<br><span class="err">${esc(stato.esito)}</span>` : "";
+    $("status").innerHTML = `Aggiornato alle <b>${quando}</b><br><b>${n}</b> notizie · <b>${nf}</b> fonti${err}`;
+  }
+
+  function disegnaTabs() {
+    const ieri = Date.now() - 24 * 3600e3;
+    const nPrima = storie.filter((s) => new Date(s.pubblicata) > ieri).length;
+    const tabs = [{ id: "prima", nome: "Prima pagina", n: Math.min(nPrima, 60) },
+      ...temi.map((t) => ({ id: t.id, nome: t.nome, n: storie.filter((s) => inTema(s, t)).length })),
+      { id: "tutte", nome: "Tutte", n: storie.length }];
+    $("tabs").innerHTML = tabs.map((t) =>
+      `<button class="tab ${vista === t.id ? "active" : ""}" data-v="${esc(t.id)}" type="button">${esc(t.nome)} <span class="n">${t.n}</span></button>`).join("");
+  }
+
+  function disegnaFiltri() {
+    const fill = (el, valori, primo) => {
+      const att = el.value;
+      el.innerHTML = `<option value="">${primo}</option>` + valori.map((v) => `<option ${v === att ? "selected" : ""}>${esc(v)}</option>`).join("");
+    };
+    const conta = (k) => [...storie.reduce((m, s) => s[k] ? m.set(s[k], (m.get(s[k]) ?? 0) + 1) : m, new Map())].sort((a, b) => b[1] - a[1]).map((x) => x[0]);
+    fill($("filtroCat"), conta("categoria"), "Tutte le categorie");
+    fill($("filtroPaese"), conta("paese"), "Tutti i paesi");
+  }
+
+  function fontiHtml(s) {
+    const nomi = [...new Set((s.fonti ?? []).map((f) => f.nome))];
+    const soloEn = (s.fonti ?? []).every((f) => f.lingua === "en");
+    return `<span class="sources">${nomi.slice(0, 2).map((n) => `<span class="src">${esc(n)}</span>`).join(" · ")}${nomi.length > 2 ? ` <span class="src-more">+${nomi.length - 2}</span>` : ""}${soloEn ? ` <span class="lang">EN→IT</span>` : ""}</span>`;
+  }
+  function kicker(s) {
+    return `<div class="kicker">${s.importanza >= 5 ? `<span class="hot">Rilevante</span>` : ""}${s.categoria ? `<span>${esc(s.categoria)}</span>` : ""}${s.paese ? `<span class="paese">${esc(s.paese)}</span>` : ""}</div>`;
+  }
+  const bg = (u) => u ? ` style="background-image:url('${esc(String(u).replace(/['"()\\\s]/g, encodeURIComponent))}')"` : "";
+
+  function card(s, tipo) {
+    if (tipo === "hero") return `<button class="story hero" data-id="${s.id}" type="button">
+        ${s.immagine ? `<div class="img"${bg(s.immagine)}></div>` : ""}
+        <div class="body">${kicker(s)}<h2>${esc(s.titolo_it)}</h2>${s.sommario_it ? `<p>${esc(s.sommario_it)}</p>` : ""}
+        <div class="meta">${fontiHtml(s)}<span>${fa(s.pubblicata)}</span></div></div></button>`;
+    return `<button class="story" data-id="${s.id}" type="button">
+        <div class="row"><div>${kicker(s)}<h2>${esc(s.titolo_it)}</h2>${tipo !== "breve" && s.sommario_it ? `<p>${esc(s.sommario_it)}</p>` : ""}</div>
+        ${tipo === "img" && s.immagine ? `<div class="thumb"${bg(s.immagine)}></div>` : ""}</div>
+        <div class="meta">${fontiHtml(s)}<span>${fa(s.pubblicata)}</span></div></button>`;
+  }
+
+  function disegna() {
+    disegnaStato(); disegnaTabs(); disegnaFiltri();
+    const lista = filtrate();
+    const box = $("contenuto");
+    if (!storie.length) {
+      box.innerHTML = aggiornando
+        ? `<div class="state"><div class="spinner"></div><h2>Preparo la prima rassegna</h2><p>Leggo i giornali, unisco le notizie doppie e traduco quelle in inglese. La prima volta serve circa un minuto.</p></div>`
+        : `<div class="state"><h2>Nessuna notizia</h2><p>Premi <b>Aggiorna</b> per leggere i feed.</p></div>`;
+      return;
+    }
+    if (!lista.length) { box.innerHTML = `<div class="state"><h2>Niente qui</h2><p>Nessuna notizia per questo tema o filtro nelle ultime 48 ore. Prova ad aggiungere parole chiave in <b>Temi e fonti</b>.</p></div>`; return; }
+
+    if (vista === "prima" && !$("cerca").value && !$("filtroCat").value && !$("filtroPaese").value) {
+      const [h, ...resto] = lista;
+      const lato = resto.slice(0, 3), altri = resto.slice(3);
+      box.innerHTML = `<section class="lead">${card(h, "hero")}<div class="lead-side">${lato.map((s) => card(s, "breve")).join("")}</div></section>
+        ${altri.length ? `<div class="section-head"><h3>Le altre notizie</h3><span class="line"></span></div><div class="grid">${altri.map((s) => card(s, "img")).join("")}</div>` : ""}`;
+    } else {
+      box.innerHTML = `<div class="grid">${lista.map((s) => card(s, "img")).join("")}</div>`;
+    }
+  }
+
+  function mostraErrore(msg) {
+    $("contenuto").innerHTML = `<div class="state"><h2>Pagina non pronta</h2><p>${esc(msg)}</p><p>Serve eseguire <b>supabase/news.sql</b> nell'SQL Editor e pubblicare la funzione <b>news</b>.</p></div>`;
+  }
+
+  $("tabs").addEventListener("click", (e) => { const b = e.target.closest(".tab"); if (!b) return; vista = b.dataset.v; disegna(); });
+  $("cerca").addEventListener("input", disegna);
+  $("filtroCat").addEventListener("change", disegna);
+  $("filtroPaese").addEventListener("change", disegna);
+  $("btnAggiorna").addEventListener("click", aggiorna);
+  $("contenuto").addEventListener("click", (e) => { const c = e.target.closest(".story"); if (c) apri(c.dataset.id); });
+
+  /* ══ LETTORE ══ */
+  let aperta = null;
+  function apri(id) {
+    aperta = storie.find((s) => s.id === id);
+    if (!aperta) return;
+    const fs = aperta.fonti ?? [];
+    // si parte da un giornale italiano se c'è (niente traduzione), altrimenti dal primo
+    const primo = Math.max(0, fs.findIndex((f) => f.lingua === "it"));
+    $("readerTabs").innerHTML = fs.map((f, i) => `<button class="tab" data-i="${i}" type="button">${esc(f.nome)}${f.lingua === "en" ? ` <span class="n">EN</span>` : ""}</button>`).join("");
+    $("reader").classList.add("on"); $("overlay").classList.add("on"); $("reader").setAttribute("aria-hidden", "false");
+    document.body.classList.add("locked");
+    leggi(primo);
+  }
+  function chiudi() {
+    $("reader").classList.remove("on"); $("overlay").classList.remove("on"); $("reader").setAttribute("aria-hidden", "true");
+    document.body.classList.remove("locked"); aperta = null;
+  }
+  $("btnChiudi").addEventListener("click", chiudi);
+  $("overlay").addEventListener("click", chiudi);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { chiudi(); chiudiModal(); } });
+  $("readerTabs").addEventListener("click", (e) => { const b = e.target.closest(".tab"); if (b) leggi(+b.dataset.i); });
+
+  let richiesta = 0;
+  async function leggi(i) {
+    const s = aperta, f = s.fonti[i], mia = ++richiesta;
+    [...$("readerTabs").children].forEach((b, k) => b.classList.toggle("active", k === i));
+    const testa = `${kicker(s)}<h1>${esc(s.titolo_it)}</h1>${s.sommario_it ? `<div class="lede">${esc(s.sommario_it)}</div>` : ""}`;
+    const link = `<a class="orig-link" href="${esc(f.url)}" target="_blank" rel="noopener">Apri l'articolo su ${esc(f.nome)} ↗</a>`;
+    $("readerBody").innerHTML = `${testa}<div class="state"><div class="spinner"></div><p>${f.lingua === "en" ? `Scarico l'articolo di ${esc(f.nome)} e lo traduco…` : `Scarico l'articolo di ${esc(f.nome)}…`}</p></div>`;
+    $("readerBody").scrollTop = 0;
+    try {
+      const r = await chiamaFunzione({ action: "articolo", url: f.url, lingua: f.lingua });
+      if (mia !== richiesta) return;
+      if (r.bloccato || r.errore) {
+        $("readerBody").innerHTML = `${testa}<div class="blocked">${esc(r.motivo || r.errore)}. Qui sopra trovi il riassunto; il testo completo è sul sito del giornale.<br>${link}</div>`;
+        return;
+      }
+      const corpo = r.paragrafi.map((p) => p.startsWith("## ") ? `<h3>${esc(p.slice(3))}</h3>` : `<p>${esc(p)}</p>`).join("");
+      $("readerBody").innerHTML = `${kicker(s)}
+        <div class="art-head"><span>Fonte: <b>${esc(f.nome)}</b> · ${fa(f.data || s.pubblicata)}</span>${r.tradotto ? `<span class="badge-tr">TRADOTTO DALL'INGLESE</span>` : ""}</div>
+        <article class="art"><h2>${esc(r.titolo || f.titolo)}</h2>${corpo}</article>${link}`;
+    } catch (e) {
+      if (mia !== richiesta) return;
+      $("readerBody").innerHTML = `${testa}<div class="blocked">Non riesco a caricare l'articolo (${esc(e.message)}).<br>${link}</div>`;
+    }
+  }
+
+  /* ══ TEMI E FONTI ══ */
+  let mVista = "temi";
+  function apriModal() { $("modal").classList.add("on"); $("overlay").classList.add("on"); disegnaModal(); }
+  function chiudiModal() {
+    if (!$("modal").classList.contains("on")) return;
+    $("modal").classList.remove("on"); if (!aperta) $("overlay").classList.remove("on"); disegna();
+  }
+  $("btnGestisci").addEventListener("click", apriModal);
+  $("mChiudi").addEventListener("click", chiudiModal);
+  $("modal").addEventListener("click", (e) => { if (e.target === $("modal")) chiudiModal(); });
+  document.querySelectorAll(".mtabs .tab").forEach((b) => b.addEventListener("click", () => {
+    mVista = b.dataset.m; document.querySelectorAll(".mtabs .tab").forEach((x) => x.classList.toggle("active", x === b)); disegnaModal();
+  }));
+  const parole = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
+
+  function disegnaModal() {
+    if (mVista === "temi") {
+      $("mBody").innerHTML = temi.map((t) => `<div class="item" data-id="${t.id}">
+          <div class="fields"><input data-k="nome" value="${esc(t.nome)}" placeholder="Nome del tema">
+          <input data-k="parole" value="${esc((t.parole ?? []).join(", "))}" placeholder="parole chiave, separate, da virgola">
+          <span class="hint">${storie.filter((s) => inTema(s, t)).length} notizie nelle ultime 48 ore</span></div>
+          <div class="actions"><button class="small-btn del" data-a="del" type="button" title="Elimina">✕</button></div></div>`).join("")
+        + `<div class="add"><div class="fields"><input id="nTema" placeholder="Nuovo tema (es. Cina, Banche, Difesa)"><input id="nParole" placeholder="parole chiave: Cina, Pechino, Xi Jinping, yuan"></div>
+           <button class="primary" id="addTema" type="button">Aggiungi</button></div>`;
+      $("addTema").onclick = async () => {
+        const nome = $("nTema").value.trim(); if (!nome) return;
+        const { data, error } = await _sb.from("news_temi").insert({ nome, parole: parole($("nParole").value), ordine: temi.length + 1 }).select().single();
+        if (error) return alert(error.message);
+        temi.push(data); disegnaModal();
+      };
+    } else {
+      $("mBody").innerHTML = fonti.map((f) => `<div class="item" data-id="${f.id}">
+          <div class="fields"><div class="two"><input data-k="nome" value="${esc(f.nome)}">
+          <select data-k="lingua"><option value="it" ${f.lingua === "it" ? "selected" : ""}>IT</option><option value="en" ${f.lingua === "en" ? "selected" : ""}>EN</option></select></div>
+          <input data-k="url_feed" value="${esc(f.url_feed)}">
+          <span class="hint ${String(f.ultimo_esito).startsWith("errore") ? "err" : ""}">${esc(f.ultimo_esito || "non ancora letta")}</span></div>
+          <div class="actions"><button class="small-btn ${f.attiva ? "on" : ""}" data-a="toggle" type="button">${f.attiva ? "On" : "Off"}</button>
+          <button class="small-btn del" data-a="del" type="button" title="Elimina">✕</button></div></div>`).join("")
+        + `<div class="add"><div class="fields"><div class="two"><input id="nNome" placeholder="Nome del giornale"><select id="nLingua"><option value="it">IT</option><option value="en">EN</option></select></div>
+           <input id="nUrl" placeholder="Indirizzo del feed RSS (https://…)"></div><button class="primary" id="addFonte" type="button">Aggiungi</button></div>`;
+      $("addFonte").onclick = async () => {
+        const nome = $("nNome").value.trim(), url = $("nUrl").value.trim();
+        if (!nome || !/^https?:\/\//.test(url)) return alert("Servono nome e indirizzo del feed");
+        const { data, error } = await _sb.from("news_fonti").insert({ nome, url_feed: url, lingua: $("nLingua").value }).select().single();
+        if (error) return alert(error.message);
+        fonti.push(data); disegnaModal();
+      };
+    }
+  }
+
+  // salvataggio automatico dei campi modificati
+  $("mBody").addEventListener("change", async (e) => {
+    const el = e.target, item = el.closest(".item"); if (!item || !el.dataset.k) return;
+    const tab = mVista === "temi" ? "news_temi" : "news_fonti", arr = mVista === "temi" ? temi : fonti;
+    const val = el.dataset.k === "parole" ? parole(el.value) : el.value.trim();
+    const { error } = await _sb.from(tab).update({ [el.dataset.k]: val }).eq("id", item.dataset.id);
+    if (error) return alert(error.message);
+    const r = arr.find((x) => x.id === item.dataset.id); if (r) r[el.dataset.k] = val;
+    if (mVista === "temi") item.querySelector(".hint").textContent = `${storie.filter((s) => inTema(s, r)).length} notizie nelle ultime 48 ore`;
+  });
+  $("mBody").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-a]"); if (!b) return;
+    const id = b.closest(".item").dataset.id;
+    const tab = mVista === "temi" ? "news_temi" : "news_fonti";
+    if (b.dataset.a === "del") {
+      if (!confirm("Eliminare?")) return;
+      const { error } = await _sb.from(tab).delete().eq("id", id);
+      if (error) return alert(error.message);
+      if (mVista === "temi") { temi = temi.filter((x) => x.id !== id); if (vista === id) vista = "prima"; }
+      else fonti = fonti.filter((x) => x.id !== id);
+      disegnaModal();
+    } else if (b.dataset.a === "toggle") {
+      const f = fonti.find((x) => x.id === id);
+      const { error } = await _sb.from("news_fonti").update({ attiva: !f.attiva }).eq("id", id);
+      if (error) return alert(error.message);
+      f.attiva = !f.attiva; disegnaModal();
+    }
+  });
+</script>
+</body>
+</html>
