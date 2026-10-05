@@ -15,7 +15,7 @@ import { parseHTML } from "npm:linkedom@0.18.5";
 import { Readability } from "npm:@mozilla/readability@0.5.0";
 
 const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
-const GEMINI_MODELLI = ["gemini-2.5-flash", "gemini-flash-latest"]; // il secondo è la riserva
+const GEMINI_PREFERITI = ["gemini-3.5-flash", "gemini-flash-latest", "gemini-3.5-flash-lite", "gemini-flash-lite-latest"]; // usati se l'elenco modelli non risponde
 const FINESTRA_ORE = 36;          // articoli più vecchi vengono ignorati
 const MAX_NUOVI = 120;            // articoli nuovi elaborati per giro
 const LOTTO = 60;                 // articoli per singola chiamata a Gemini
@@ -40,28 +40,66 @@ function jwtClaims(token: string): Record<string, any> {
 }
 
 /* ══ Gemini ══ */
-/* NUOVO · riprova quando il modello è sovraccarico (503/429/500) e poi passa ai modelli di riserva */
-const GEMINI_RISERVE = ["gemini-2.5-flash-lite"];
+/* NUOVO · i modelli Flash vengono presi dall'elenco che Google dà per questa chiave
+           (i nomi cambiano spesso); riprova se sovraccarico (429/500/503) e poi passa al successivo */
 const attendi = (ms: number) => new Promise((r) => setTimeout(r, ms));
+let modelliCache: string[] | null = null;
+
+async function modelliDisponibili(): Promise<string[]> {
+  if (modelliCache) return modelliCache;
+  const trovati: { id: string; ver: number; lite: boolean; alias: boolean }[] = [];
+  try {
+    let pagina = "";
+    for (let k = 0; k < 5; k++) {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=200${pagina ? `&pageToken=${pagina}` : ""}`,
+        { headers: { "x-goog-api-key": GEMINI_KEY }, signal: AbortSignal.timeout(10_000) });
+      if (r.status === 401 || r.status === 403) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d?.error?.message || "Chiave Gemini non valida");
+      }
+      if (!r.ok) break;
+      const d = await r.json();
+      for (const m of d.models ?? []) {
+        const id = String(m.name ?? "").replace(/^models\//, "");
+        if (!(m.supportedGenerationMethods ?? []).includes("generateContent")) continue;
+        // solo Flash / Flash-Lite stabili (niente preview, sperimentali, immagini, audio, tts)
+        const x = id.match(/^gemini-(\d+(?:\.\d+)?)-flash(-lite)?$/);
+        if (x) trovati.push({ id, ver: parseFloat(x[1]), lite: !!x[2], alias: false });
+        else if (id === "gemini-flash-latest" || id === "gemini-flash-lite-latest") trovati.push({ id, ver: 0, lite: id.includes("lite"), alias: true });
+      }
+      pagina = d.nextPageToken ?? "";
+      if (!pagina) break;
+    }
+  } catch (e) {
+    if (/chiave|key|api/i.test((e as Error).message)) throw e;
+  }
+  // ordine: Flash più recente → alias Flash → Flash-Lite più recente → alias Lite
+  trovati.sort((a, b) => (+a.lite - +b.lite) || (+a.alias - +b.alias) || (b.ver - a.ver));
+  const elenco = trovati.map((t) => t.id).slice(0, 5);
+  modelliCache = elenco.length ? elenco : GEMINI_PREFERITI;
+  return modelliCache;
+}
 
 async function gemini(prompt: string, maxTokens = 8192): Promise<any> {
   if (!GEMINI_KEY) throw new Error("Manca il secret GEMINI_API_KEY in Supabase");
   let ultimoErrore = "";
-  for (const modello of [...GEMINI_MODELLI, ...GEMINI_RISERVE]) {
+  for (const modello of await modelliDisponibili()) {
+    // ragionamento al minimo: per i 2.5 si usa thinkingBudget, per i più recenti thinkingLevel
+    let pensiero: Record<string, unknown> | null = modello.startsWith("gemini-2.") ? { thinkingBudget: 0 } : { thinkingLevel: "low" };
     for (let tentativo = 0; tentativo < 3; tentativo++) {
       const generationConfig: Record<string, unknown> = {
         responseMimeType: "application/json",
         temperature: 0.2,
         maxOutputTokens: maxTokens,
       };
-      if (modello.startsWith("gemini-2.5")) generationConfig.thinkingConfig = { thinkingBudget: 0 };
+      if (pensiero) generationConfig.thinkingConfig = pensiero;
       let r: Response;
       try {
         r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modello}:generateContent`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY },
           body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig }),
-          signal: AbortSignal.timeout(60_000),
+          signal: AbortSignal.timeout(70_000),
         });
       } catch (e) {
         ultimoErrore = `Gemini non risponde (${(e as Error).message})`;
@@ -70,15 +108,16 @@ async function gemini(prompt: string, maxTokens = 8192): Promise<any> {
       }
       const data = await r.json().catch(() => ({}));
       if (r.ok) {
-        const testo = (data?.candidates?.[0]?.content?.parts ?? []).map((p: any) => p.text ?? "").join("");
+        const testo = (data?.candidates?.[0]?.content?.parts ?? []).filter((p: any) => !p.thought).map((p: any) => p.text ?? "").join("");
         const m = testo.match(/[\[{][\s\S]*[\]}]/);
-        if (!m) { ultimoErrore = "Risposta di Gemini non valida"; break; } // prova il modello successivo
-        try { return JSON.parse(m[0]); } catch { ultimoErrore = "Risposta di Gemini incompleta"; break; }
+        if (!m) { ultimoErrore = `Risposta di ${modello} non valida`; break; } // prova il modello successivo
+        try { return JSON.parse(m[0]); } catch { ultimoErrore = `Risposta di ${modello} incompleta`; break; }
       }
-      ultimoErrore = data?.error?.message || `Gemini ${r.status}`;
-      if (r.status === 401 || r.status === 403) throw new Error(ultimoErrore); // chiave sbagliata: inutile riprovare
-      if (r.status === 400 || r.status === 404) break;                       // modello non disponibile → riserva
-      await attendi(2000 * (tentativo + 1));                                  // 429/500/503 → riprova
+      ultimoErrore = `${modello}: ${data?.error?.message || r.status}`;
+      if (r.status === 401 || r.status === 403) throw new Error(ultimoErrore);         // chiave sbagliata
+      if (r.status === 400 && pensiero && /think/i.test(ultimoErrore)) { pensiero = null; continue; } // parametro non accettato → senza
+      if (r.status === 400 || r.status === 404) break;                                // modello non disponibile → successivo
+      await attendi(2000 * (tentativo + 1));                                          // 429/500/503 → riprova
     }
   }
   throw new Error(ultimoErrore || "Gemini non disponibile");
