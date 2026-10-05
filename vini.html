@@ -121,6 +121,7 @@ input,select,textarea{font-family:var(--font-ui);}
 .mp-w .n{font-weight:800;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mp-w .m{font-size:11.5px;color:var(--text-mid);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mp-w .v{font-weight:800;font-size:15px;color:var(--wine);font-variant-numeric:tabular-nums;}
+#map .tiles-dark{filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(.92) saturate(.55);}   /* NUOVO · OSM in versione scura */
 #map .mp-lbl{background:none;border:0;box-shadow:none;color:#fff;font-weight:800;font-size:11px;text-shadow:0 1px 3px #000;}
 #map .mp-lbl::before{display:none;}
 /* FINE NUOVO */
@@ -1190,9 +1191,10 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     catch(e){ $('#mapNote').textContent = 'Non riesco a caricare la mappa: controlla la connessione.'; return; }
     if (!map){
       map = L.map('map', { zoomControl: true, attributionControl: true }).setView([42.5, 12.5], 5);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 18, subdomains: 'abcd',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+      /* NUOVO · cartine OpenStreetMap (gratuite, senza chiave), scurite via CSS per il tema della pagina */
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, className: 'tiles-dark',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
       }).addTo(map);
       map.on('popupopen', e => e.popup.getElement().querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => openDetail(b.dataset.open))));
     }
