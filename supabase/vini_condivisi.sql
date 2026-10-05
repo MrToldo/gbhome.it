@@ -68,3 +68,10 @@ create policy "solo_2fa" on public.vini_voci as restrictive for all to authentic
 alter table public.vini_recensioni
   add column voto_naso  smallint check (voto_naso  between 1 and 5),
   add column voto_bocca smallint check (voto_bocca between 1 and 5);
+
+-- ═══ 2026-10-05 · località per la mappa (GIÀ APPLICATO) ═══
+alter table public.vini
+  add column localita text,
+  add column paese    text,
+  add column lat      double precision,
+  add column lng      double precision;

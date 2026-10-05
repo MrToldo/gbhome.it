@@ -97,6 +97,33 @@ input,select,textarea{font-family:var(--font-ui);}
 .view-tabs button{flex:1;border:none;background:none;color:var(--text-mid);font-weight:800;font-size:13.5px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .2s,color .2s;display:flex;align-items:center;justify-content:center;gap:7px;}
 .view-tabs button svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
 .view-tabs button.on{background:var(--wine-glow);color:var(--wine);}
+/* NUOVO · mappa */
+[hidden]{display:none!important;}
+.view-tabs button{padding:10px 8px;}
+.map-wrap{margin-bottom:16px;}
+.map-mode{display:flex;gap:6px;margin-bottom:10px;}
+.map-mode button{flex:1;border:1.5px solid transparent;background:var(--bg-panel);color:var(--text-mid);font-weight:800;font-size:13.5px;padding:10px;border-radius:12px;cursor:pointer;}
+.map-mode button.on{border-color:var(--wine);background:var(--wine-glow);color:var(--text-hi);}
+#map{height:calc(100dvh - 300px);min-height:340px;border-radius:18px;overflow:hidden;background:var(--bg-base);border:1px solid var(--border-soft);}
+.map-note{font-size:12.5px;color:var(--text-mid);font-weight:600;margin-top:10px;line-height:1.5;}
+.map-note button{border:0;background:none;color:var(--wine);font-weight:800;font-size:12.5px;padding:0;cursor:pointer;text-decoration:underline;}
+#map.leaflet-container{font-family:var(--font-ui);background:#0d111a;}
+#map .leaflet-popup-content-wrapper,#map .leaflet-popup-tip{background:var(--bg-base);color:var(--text-hi);box-shadow:0 12px 30px -10px var(--shadow);}
+#map .leaflet-popup-content{margin:12px 14px;min-width:190px;}
+#map a.leaflet-popup-close-button{color:var(--text-mid);}
+#map .leaflet-control-attribution{background:rgba(16,20,31,.75)!important;color:var(--text-lo)!important;font-size:9.5px;}
+#map .leaflet-control-attribution a{color:var(--text-mid)!important;}
+#map .leaflet-bar a{background:var(--bg-panel)!important;color:var(--text-hi)!important;border-color:var(--border-strong)!important;}
+.mp-h{font-weight:800;font-size:14.5px;margin-bottom:2px;}
+.mp-s{font-size:12px;color:var(--text-lo);font-weight:600;margin-bottom:8px;}
+.mp-w{display:flex;align-items:center;gap:8px;width:100%;border:0;background:var(--bg-panel);color:var(--text-hi);text-align:left;border-radius:10px;padding:8px 10px;margin-top:6px;cursor:pointer;font-family:inherit;}
+.mp-w .t{flex:1;min-width:0;}
+.mp-w .n{font-weight:800;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mp-w .m{font-size:11.5px;color:var(--text-mid);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mp-w .v{font-weight:800;font-size:15px;color:var(--wine);font-variant-numeric:tabular-nums;}
+#map .mp-lbl{background:none;border:0;box-shadow:none;color:#fff;font-weight:800;font-size:11px;text-shadow:0 1px 3px #000;}
+#map .mp-lbl::before{display:none;}
+/* FINE NUOVO */
 
 /* ── PULSANTE RICERCA VITIGNO/REGIONE (solo Brave Search) ── */
 .btn-ai{
@@ -495,7 +522,18 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   <div class="view-tabs" id="viewTabs">
     <button type="button" class="on" data-view="recensiti"><svg viewBox="0 0 24 24"><path d="M8 2h8l-.5 7a3.5 3.5 0 0 1-7 0z"/><path d="M12 13v8M8 21h8"/></svg>Recensiti</button>
     <button type="button" data-view="cantina"><svg viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21V12h6v9"/></svg>In cantina</button>
+    <button type="button" data-view="mappa"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Mappa</button>   <!-- NUOVO -->
   </div>
+
+  <!-- NUOVO · MAPPA dei vini (Leaflet + OpenStreetMap) -->
+  <section class="map-wrap" id="mapWrap" hidden>
+    <div class="map-mode" id="mapMode">
+      <button type="button" class="on" data-m="citta">Paesi e città</button>
+      <button type="button" data-m="regioni">Regioni</button>
+    </div>
+    <div id="map"></div>
+    <div class="map-note" id="mapNote"></div>
+  </section>
 
   <section class="stats" id="stats"></section>
 
@@ -603,8 +641,22 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         </div>
       </div>
 
+      <!-- NUOVO · dove si produce: serve per la mappa -->
+      <div class="row2 field">
+        <div>
+          <label class="flabel" for="fLocalita">Località cantina</label>
+          <input class="in" id="fLocalita" list="localitaList" placeholder="Es. Barolo" autocomplete="off" autocapitalize="words">
+          <datalist id="localitaList"></datalist>
+        </div>
+        <div>
+          <label class="flabel" for="fRegione">Regione</label>
+          <input class="in" id="fRegione" list="regioniList" placeholder="Piemonte" autocomplete="off" autocapitalize="words">
+          <datalist id="regioniList"></datalist>
+        </div>
+      </div>
+
       <details class="more" id="moreBox">
-        <summary><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>Vitigno e regione</summary>
+        <summary><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>Vitigno e paese</summary>
         <!-- NUOVO · autocompilazione Vitigno/Regione via Brave Search (nessuna IA a pagamento) -->
         <button type="button" class="btn-ai" id="btnAiFill">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -617,9 +669,9 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
             <datalist id="vitigniList"></datalist>
           </div>
           <div>
-            <label class="flabel" for="fRegione">Regione</label>
-            <input class="in" id="fRegione" list="regioniList" placeholder="Piemonte" autocomplete="off" autocapitalize="words">
-            <datalist id="regioniList"></datalist>
+            <label class="flabel" for="fPaese">Paese</label>   <!-- NUOVO -->
+            <input class="in" id="fPaese" list="paesiList" placeholder="Italia" autocomplete="off" autocapitalize="words">
+            <datalist id="paesiList"></datalist>
           </div>
         </div>
       </details>
@@ -1025,7 +1077,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       } else if (!confirm(`Hai già una recensione su "${dst.nome}" (voto ${dst._mine.voto ?? '–'}).\nTengo quella e scarto l'altra (voto ${src._mine.voto ?? '–'})?`)) return null;
     }
     const patch = {};
-    ['cantina', 'annata', 'tipo', 'metodo', 'vitigno', 'regione', 'prezzo', 'temperatura'].forEach(k => { if (dst[k] == null && src[k] != null) patch[k] = src[k]; });
+    ['cantina', 'annata', 'tipo', 'metodo', 'vitigno', 'regione', 'prezzo', 'temperatura', 'localita', 'paese', 'lat', 'lng'].forEach(k => { if (dst[k] == null && src[k] != null) patch[k] = src[k]; });
     if (!dst.in_cantina && src.in_cantina) patch.in_cantina = true;
     const movedPhoto = !dst.foto_url && !!src.foto_url;
     if (movedPhoto){ patch.foto_url = src.foto_url; patch.foto_path = src.foto_path; patch.foto_auto = src.foto_auto; }
@@ -1038,6 +1090,164 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     if (!movedPhoto && src.foto_path) removePhoto(src.foto_path);
     return dst.id;
   }
+  /* ═══ FINE NUOVO ═══ */
+
+  /* ═══ NUOVO · MAPPA ═══
+     Paesi e città: un puntino per località della cantina (coordinate salvate sul vino, cercate una volta sola su OpenStreetMap).
+     Regioni: un cerchio per regione, grande quanto il numero di vini e colorato in base al voto medio. */
+  const REGIONI_IT = {
+    'piemonte':[45.05,7.92], 'valle d aosta':[45.74,7.43], 'val d aosta':[45.74,7.43], 'lombardia':[45.62,9.85],
+    'trentino alto adige':[46.43,11.17], 'trentino':[46.05,11.12], 'alto adige':[46.62,11.35], 'sudtirol':[46.62,11.35],
+    'veneto':[45.65,11.85], 'friuli venezia giulia':[46.15,13.05], 'friuli':[46.15,13.05], 'liguria':[44.35,8.75],
+    'emilia romagna':[44.53,11.0], 'emilia':[44.65,10.6], 'romagna':[44.2,12.05], 'toscana':[43.45,11.1], 'umbria':[42.97,12.49],
+    'marche':[43.35,13.15], 'lazio':[41.95,12.75], 'abruzzo':[42.25,13.85], 'molise':[41.65,14.6], 'campania':[40.85,14.85],
+    'puglia':[41.0,16.6], 'basilicata':[40.5,16.08], 'calabria':[39.05,16.5], 'sicilia':[37.55,14.15], 'sardegna':[40.05,9.05]
+  };
+  const PAESI = ['Italia','Francia','Spagna','Portogallo','Germania','Austria','Slovenia','Grecia','Ungheria','Stati Uniti','Cile','Argentina','Sudafrica','Australia','Nuova Zelanda'];
+  const GEO_KEY = 'gb_vini_geo_regioni';
+  let map = null, mapLayer = null, mapMode = 'citta', leafletP = null, geoBusy = false;
+
+  function loadLeaflet(){
+    if (window.L) return Promise.resolve();
+    if (leafletP) return leafletP;
+    leafletP = new Promise((res, rej) => {
+      const css = document.createElement('link');
+      css.rel = 'stylesheet'; css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(css);
+      const js = document.createElement('script');
+      js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      js.onload = res; js.onerror = () => { leafletP = null; rej(new Error('Mappa non caricata')); };
+      document.head.appendChild(js);
+    });
+    return leafletP;
+  }
+  async function nominatim(q){
+    const u = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=it&q=' + encodeURIComponent(q);
+    const r = await fetch(u, { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) throw new Error('Ricerca posizione: ' + r.status);
+    const j = await r.json();
+    return j[0] ? [parseFloat(j[0].lat), parseFloat(j[0].lon)] : null;
+  }
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const placeQuery = v => [v.localita, v.regione, v.paese].filter(Boolean).join(', ');
+
+  /* posizioni mancanti: una richiesta al secondo (regole di OpenStreetMap), poi si salvano sul vino */
+  async function geocodeMissing(){
+    if (geoBusy) return;
+    const todo = vini.filter(v => v.localita && (v.lat == null || v.lng == null) && !v._geoFail);
+    if (!todo.length) return;
+    geoBusy = true; renderMapNote();
+    let ok = 0;
+    for (const v of todo){
+      try {
+        const ll = await nominatim(placeQuery(v));
+        if (ll){
+          const { error } = await sb.from(TABLE).update({ lat: ll[0], lng: ll[1] }).eq('id', v.id);
+          if (!error){ v.lat = ll[0]; v.lng = ll[1]; ok++; }
+        } else v._geoFail = true;
+      } catch(e){ console.error(e); v._geoFail = true; }
+      await sleep(1100);
+    }
+    geoBusy = false;
+    if (view === 'mappa') renderMap();
+    if (ok) toast(ok === 1 ? '1 vino aggiunto alla mappa' : `${ok} vini aggiunti alla mappa`);
+  }
+
+  function regionKey(v){ return normTxt(v.regione) + '|' + normTxt(v.paese || 'Italia'); }
+  function readGeoCache(){ try { return JSON.parse(localStorage.getItem(GEO_KEY) || '{}'); } catch(e){ return {}; } }
+  function writeGeoCache(c){ try { localStorage.setItem(GEO_KEY, JSON.stringify(c)); } catch(e){} }
+  async function regionCoords(v){
+    const n = normTxt(v.regione);
+    const it = !v.paese || normTxt(v.paese) === 'italia';
+    if (it){
+      if (REGIONI_IT[n]) return REGIONI_IT[n];
+      const k = Object.keys(REGIONI_IT).find(k => n.includes(k) || k.includes(n));
+      if (k) return REGIONI_IT[k];
+    }
+    const cache = readGeoCache(), key = regionKey(v);
+    if (key in cache) return cache[key];
+    const ll = await nominatim([v.regione, v.paese || 'Italia'].join(', ')).catch(() => null);
+    cache[key] = ll; writeGeoCache(cache);
+    await sleep(1100);
+    return ll;
+  }
+
+  const voteColor = x => x == null ? '#5f6b83' : x >= 8 ? '#ff6b8a' : x >= 6.5 ? '#e8a33c' : '#9aa5bb';
+  function wineBtn(v){
+    const vt = v.voto != null ? v.voto : (v._media != null ? v._media.toFixed(1).replace('.', ',') : (v._hidden.length ? '?' : '–'));
+    return `<button type="button" class="mp-w" data-open="${v.id}"><span class="t"><span class="n">${esc(v.nome)}</span>
+      <span class="m">${esc([v.cantina, v.annata, v.prezzo != null ? fmtEur(v.prezzo) : null].filter(Boolean).join(' · '))}</span></span><span class="v">${vt}</span></button>`;
+  }
+  const avgOf = list => { const xs = list.map(v => v._media ?? v.voto).filter(x => x != null); return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null; };
+  function popupHtml(title, sub, list){
+    const best = [...list].sort((a, b) => (b._media ?? b.voto ?? -1) - (a._media ?? a.voto ?? -1));
+    return `<div class="mp-h">${esc(title)}</div><div class="mp-s">${esc(sub)}</div>${best.map(wineBtn).join('')}`;
+  }
+
+  async function renderMap(){
+    if (view !== 'mappa') return;
+    try { await loadLeaflet(); }
+    catch(e){ $('#mapNote').textContent = 'Non riesco a caricare la mappa: controlla la connessione.'; return; }
+    if (!map){
+      map = L.map('map', { zoomControl: true, attributionControl: true }).setView([42.5, 12.5], 5);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 18, subdomains: 'abcd',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+      }).addTo(map);
+      map.on('popupopen', e => e.popup.getElement().querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => openDetail(b.dataset.open))));
+    }
+    setTimeout(() => map.invalidateSize(), 60);
+    if (mapLayer) mapLayer.remove();
+    mapLayer = L.layerGroup().addTo(map);
+    const pts = [];
+    if (mapMode === 'citta'){
+      const groups = {};
+      vini.filter(v => v.lat != null && v.lng != null).forEach(v => {
+        const k = v.lat.toFixed(3) + ',' + v.lng.toFixed(3);
+        (groups[k] = groups[k] || []).push(v);
+      });
+      Object.values(groups).forEach(list => {
+        const v0 = list[0], ll = [v0.lat, v0.lng];
+        pts.push(ll);
+        L.circleMarker(ll, { radius: 7 + Math.sqrt(list.length) * 3, color: '#fff', weight: 1.5, fillColor: voteColor(avgOf(list)), fillOpacity: .92 })
+          .bindPopup(popupHtml(v0.localita || 'Località', [v0.regione, v0.paese].filter(Boolean).join(', ') + ` · ${list.length} ${list.length === 1 ? 'vino' : 'vini'}`, list), { maxWidth: 280 })
+          .addTo(mapLayer);
+      });
+    } else {
+      const groups = {};
+      vini.filter(v => v.regione).forEach(v => { (groups[regionKey(v)] = groups[regionKey(v)] || []).push(v); });
+      for (const list of Object.values(groups)){
+        const ll = await regionCoords(list[0]); if (!ll) continue;
+        if (view !== 'mappa' || mapMode !== 'regioni') return;
+        pts.push(ll);
+        const avg = avgOf(list);
+        L.circleMarker(ll, { radius: 12 + Math.sqrt(list.length) * 6, color: '#fff', weight: 1.5, fillColor: voteColor(avg), fillOpacity: .78 })
+          .bindTooltip(String(list.length), { permanent: true, direction: 'center', className: 'mp-lbl' })
+          .bindPopup(popupHtml(list[0].regione, `${list.length} ${list.length === 1 ? 'vino' : 'vini'}${avg != null ? ' · media ' + avg.toFixed(1).replace('.', ',') : ''}`, list), { maxWidth: 280 })
+          .addTo(mapLayer);
+      }
+    }
+    if (pts.length === 1) map.setView(pts[0], mapMode === 'citta' ? 9 : 7);
+    else if (pts.length) map.fitBounds(pts, { padding: [36, 36], maxZoom: 9 });
+    renderMapNote();
+  }
+  function renderMapNote(){
+    const noLoc = vini.filter(v => mapMode === 'citta' ? !v.localita : !v.regione).length;
+    const pending = vini.filter(v => v.localita && v.lat == null && !v._geoFail).length;
+    const failed = vini.filter(v => v._geoFail).map(v => v.localita);
+    const parts = [];
+    if (geoBusy || pending) parts.push(`Cerco la posizione di ${pending} ${pending === 1 ? 'vino' : 'vini'}…`);
+    if (noLoc) parts.push(`${noLoc} ${noLoc === 1 ? 'vino non ha' : 'vini non hanno'} ${mapMode === 'citta' ? 'la località della cantina' : 'la regione'}: aggiungila da Modifica.`);
+    if (failed.length) parts.push(`Località non trovate: ${esc([...new Set(failed)].join(', '))}.`);
+    parts.push('Colore: <span style="color:#ff6b8a">●</span> 8+ · <span style="color:#e8a33c">●</span> 6,5-8 · <span style="color:#9aa5bb">●</span> sotto · <span style="color:#5f6b83">●</span> senza voto');
+    $('#mapNote').innerHTML = parts.join('<br>');
+  }
+  $('#mapMode').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mapMode = b.dataset.m;
+    document.querySelectorAll('#mapMode button').forEach(x => x.classList.toggle('on', x === b));
+    renderMap();
+  });
   /* ═══ FINE NUOVO ═══ */
 
   /* ══ CARICAMENTO ══ */
@@ -1059,7 +1269,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   }
 
   /* ══ RENDER ══ */
-  function renderAll(){ renderStats(); renderTaste(); renderFilters(); renderAbbFilters(); renderGrid(); renderDatalists(); }   // NUOVO · + filtro abbinamenti
+  function renderAll(){ renderStats(); renderTaste(); renderFilters(); renderAbbFilters(); renderGrid(); renderDatalists(); if (view === 'mappa') renderMap(); }   // NUOVO · + filtro abbinamenti, mappa
 
   /* NUOVO · TAB Recensiti / In cantina */
   $('#viewTabs').addEventListener('click', e => {
@@ -1068,6 +1278,12 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     document.querySelectorAll('#viewTabs button').forEach(x => x.classList.toggle('on', x === b));
     $('#taste').style.display = view === 'cantina' ? 'none' : '';
     filtro = 'tutti';
+    /* NUOVO · vista mappa */
+    const isMap = view === 'mappa';
+    ['#stats', '.toolbar', '#filters', '#abbFilters', '#grid'].forEach(sel => { const el = $(sel); if (el) el.hidden = isMap; });
+    if (isMap) $('#taste').style.display = 'none';
+    $('#mapWrap').hidden = !isMap;
+    if (isMap){ renderMap(); geocodeMissing(); return; }
     renderStats(); renderFilters(); renderGrid();
   });
 
@@ -1179,7 +1395,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       if (TIPI.some(t => t.k === filtro) && v.tipo !== filtro) return false;
       if (abbFiltro && !v._abbAll.includes(abbFiltro)) return false;   // NUOVO
       if (q){
-        const hay = [v.nome, v.cantina, v.vitigno, v.regione, v.annata, ...v._revs.flatMap(r => [r.luogo, r.note, r.autore, ...(r.tag || []), ...(r.abbinamenti || []), ...(r.occasione || [])])].join(' ').toLowerCase();   // NUOVO · cerca in tutte le recensioni
+        const hay = [v.nome, v.cantina, v.vitigno, v.regione, v.localita, v.paese, v.annata, ...v._revs.flatMap(r => [r.luogo, r.note, r.autore, ...(r.tag || []), ...(r.abbinamenti || []), ...(r.occasione || [])])].join(' ').toLowerCase();   // NUOVO · cerca in tutte le recensioni
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -1239,6 +1455,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     $('#luoghiList').innerHTML  = uniq('luogo').map(x => `<option value="${esc(x)}">`).join('');
     $('#vitigniList').innerHTML = uniq('vitigno').map(x => `<option value="${esc(x)}">`).join('');
     $('#regioniList').innerHTML = uniq('regione').map(x => `<option value="${esc(x)}">`).join('');
+    $('#localitaList').innerHTML = uniq('localita').map(x => `<option value="${esc(x)}">`).join('');   // NUOVO
+    $('#paesiList').innerHTML = [...new Set([...PAESI, ...uniq('paese')])].map(x => `<option value="${esc(x)}">`).join('');   // NUOVO
   }
 
   /* ══ OVERLAY ══ */
@@ -1390,7 +1608,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     paintForm();
   });
 
-  const INPUTS = { nome:'#fNome', cantina:'#fCantina', annata:'#fAnnata', luogo:'#fLuogo', note:'#fNote', vitigno:'#fVitigno', regione:'#fRegione', prezzo:'#fPrezzo', data:'#fData', temperatura:'#fTemp' };
+  const INPUTS = { nome:'#fNome', cantina:'#fCantina', annata:'#fAnnata', luogo:'#fLuogo', note:'#fNote', vitigno:'#fVitigno', regione:'#fRegione', prezzo:'#fPrezzo', data:'#fData', temperatura:'#fTemp', localita:'#fLocalita', paese:'#fPaese' };   // NUOVO · località, paese
 
   function resetForm(){
     if (F?.preview) URL.revokeObjectURL(F.preview);
@@ -1421,10 +1639,11 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     $('#fNote').value = v.note || '';
     $('#fVitigno').value = v.vitigno || '';
     $('#fRegione').value = v.regione || '';
+    $('#fLocalita').value = v.localita || ''; $('#fPaese').value = v.paese || '';   // NUOVO
     $('#fPrezzo').value = v.prezzo != null ? String(v.prezzo).replace('.', ',') : '';
     $('#fData').value = v._mine?.data || todayISO();   // NUOVO · data della mia recensione
     $('#fTemp').value = v.temperatura || '';   // NUOVO
-    $('#moreBox').open = !!(v.vitigno || v.regione);   // NUOVO · ora contiene solo vitigno e regione
+    $('#moreBox').open = !!(v.vitigno || v.paese);   // NUOVO · ora contiene vitigno e paese
     $('#formTitle').textContent = 'Modifica vino';
     renderVociChips();   // NUOVO · include paintForm
     renderDupBox();      // NUOVO · vuoto in modifica
@@ -1452,6 +1671,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       in_cantina: F.inCantina,   // NUOVO
       luogo: val('#fLuogo'), note: val('#fNote'),
       vitigno: val('#fVitigno'), regione: val('#fRegione'),
+      localita: val('#fLocalita'), paese: val('#fPaese'),   // NUOVO
       prezzo: Number.isFinite(prezzo) ? prezzo : null,
       temperatura: val('#fTemp'),   // NUOVO
       data: $('#fData').value || todayISO()
@@ -1520,6 +1740,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       if (!F.fotoUrl && !rec.foto_url) oldPath = F.fotoPath;  // foto rimossa
       let res;
       const { w, r } = splitRec(rec);   // NUOVO · scheda comune / mia recensione
+      { const cur = F.id ? vini.find(x => x.id === F.id) : null;   // NUOVO · località cambiata → posizione da ricalcolare
+        if (cur && !joinCur && (normTxt(cur.localita) !== normTxt(w.localita) || normTxt(cur.paese) !== normTxt(w.paese) || normTxt(cur.regione) !== normTxt(w.regione))){ w.lat = null; w.lng = null; } }
       if (joinCur){   // NUOVO · unendo a un vino esistente non si sovrascrive la sua scheda: si riempiono solo i campi vuoti
         Object.keys(w).forEach(k => { if (k === 'in_cantina' && w[k] === true) return; if (w[k] == null || w[k] === '' || (joinCur[k] != null && joinCur[k] !== '')) delete w[k]; });
         if (!Object.keys(w).length) w.foto_auto = joinCur.foto_auto;   // update senza campi non è ammesso
@@ -1535,6 +1757,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       toast(joinCur ? 'Recensione aggiunta al vino già registrato 🍷' : F.id ? 'Modifiche salvate' :   // NUOVO
             (needAuto ? 'Vino registrato 🍷 cerco la foto…' : 'Vino registrato 🍷'));
       await load();
+      geocodeMissing();   // NUOVO · posizione per la mappa
       if (F.id && detailId === F.id) renderDetail();
       if (needAuto && res.data){ autoQueue.push(res.data.id); runAutoQueue(); }
     } catch(e){
@@ -1584,7 +1807,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       ${v._revs.length > 1 && v._media != null ? `<div class="d-media" style="margin:-6px 0 14px;">Voto medio ${v._media.toFixed(1).replace('.', ',')} · ${v._revs.map(r => esc(nameOf(r)) + ' ' + (r.voto ?? '–')).join(' · ')}</div>` : ''}
       <div class="d-grid">
         ${cell('Vitigno', v.vitigno)}
-        ${cell('Regione', v.regione)}
+        ${cell('Zona', [v.localita, v.regione, v.paese].filter(Boolean).join(', '))}   <!-- NUOVO · località, regione, paese -->
         ${cell('Prezzo', v.prezzo != null ? fmtEur(v.prezzo) : '')}
         ${v.tipo === 'bollicine' ? cell('Metodo', v.metodo) : ''}
         ${cell('Temperatura di servizio', v.temperatura)}

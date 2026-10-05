@@ -2,7 +2,12 @@
 <html lang="it" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">   <!-- NUOVO · iPhone: tutto schermo -->
+<meta name="theme-color" content="#10141f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GB Suite">
 <title>Login</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="icon" type="image/svg+xml" href="image/logo.svg">
@@ -154,6 +159,17 @@ footer span{color:var(--brand);margin:0 4px;}
     font-size:9px;font-weight:600;letter-spacing:.24em;
     text-transform:uppercase;color:#5f6b83;white-space:nowrap;
   }
+/* ═══ NUOVO · iPhone ═══ */
+body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);}
+.topbar{padding-top:calc(16px + env(safe-area-inset-top));}
+footer{padding-bottom:calc(16px + env(safe-area-inset-bottom));}
+.form-input{font-size:16px;}                       /* sotto i 16px Safari zooma quando tocchi il campo */
+.btn{min-height:48px;}
+.open-auth{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:4px 0 12px;padding:13px 16px;border-radius:12px;background:var(--brand-glow);border:1.5px solid rgba(0,214,143,.35);color:var(--brand);font-weight:800;font-size:15px;text-decoration:none;}
+.open-auth svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
+.open-auth-hint{font-size:12.5px;color:var(--text-lo);text-align:center;margin:-4px 0 12px;line-height:1.5;}
+@media (hover:hover) and (pointer:fine){ .open-auth,.open-auth-hint{display:none;} }   /* solo su telefono/tablet */
+/* ═══ FINE NUOVO ═══ */
 </style>
 </head>
 <body>
@@ -203,6 +219,9 @@ footer span{color:var(--brand);margin:0 4px;}
       <div class="card-title">Attiva l'autenticazione</div>
       <div class="card-sub">Scansiona il QR con la tua estensione authenticator.</div>
       <div class="alert" id="alertSetup"></div>
+      <!-- NUOVO · sul telefono non puoi inquadrare il QR del telefono stesso: si apre direttamente l'app -->
+      <a class="open-auth" id="openAuth" href="#"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Aggiungi all'app sul telefono</a>
+      <div class="open-auth-hint">Su iPhone si apre Password (o la tua app authenticator) e salva il codice. Poi torna qui e inserisci le 6 cifre.</div>
       <div class="qr-wrap">
         <div id="qrDiv"></div>
         <div class="secret-box" id="secretBox" onclick="copySecret()" title="Clicca per copiare"></div>
@@ -215,7 +234,7 @@ footer span{color:var(--brand);margin:0 4px;}
       <div class="form-group" style="margin-top:14px;">
         <label class="form-label">Codice di verifica</label>
         <div class="otp-row" id="setupOtpRow">
-          <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
+          <input class="otp-cell" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
           <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
           <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
           <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
@@ -233,7 +252,7 @@ footer span{color:var(--brand);margin:0 4px;}
       <div class="card-sub">Apri la tua estensione authenticator e inserisci il codice.</div>
       <div class="alert" id="alert2FA"></div>
       <div class="otp-row" id="otpRow">
-        <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code">
+        <input class="otp-cell" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
         <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
         <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
         <input class="otp-cell" type="text" inputmode="numeric" maxlength="1">
@@ -329,6 +348,15 @@ function wireOtp(rowId, btnId) {
   const check   = () => { if(btn) btn.disabled = getCode().length < 6; };
   cells.forEach((cell, i) => {
     cell.addEventListener('input', () => {
+      /* NUOVO · iPhone: il suggerimento "Da Password" incolla tutte le 6 cifre in un solo campo */
+      const digits = cell.value.replace(/\D/g,'');
+      if (digits.length > 1){
+        digits.slice(0, cells.length - i).split('').forEach((d, k) => { cells[i + k].value = d; });
+        cells[Math.min(i + digits.length, cells.length) - 1].focus();
+        check();
+        if (getCode().length === 6 && btn && !btn.disabled) btn.click();
+        return;
+      }
       cell.value = cell.value.replace(/\D/g,'').slice(-1);
       if (cell.value && i < cells.length-1) cells[i+1].focus();
       check();
@@ -433,6 +461,7 @@ async function startSetup2FA(user) {
   qrDiv.appendChild(img);
 
   document.getElementById('secretBox').textContent = data.totp.secret;
+  document.getElementById('openAuth').href = data.totp.uri;   // NUOVO · otpauth:// per iPhone
 }
 
 function copySecret() {
