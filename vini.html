@@ -1316,10 +1316,10 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
 
   /* ═══ NUOVO · I MIEI VINI / QUELLI RECENSITI DALL'ALTRO ═══
      Nei "Recensiti" ognuno vede di base solo i propri vini (recensiti da sé, o aggiunti da sé e non ancora recensiti).
-     Con il pulsante vede i vini recensiti dall'altro e non ancora da sé (alla cieca), per recensirli se li beve. */
+     Con il pulsante vede tutti i vini recensiti dall'altro: il voto dell'altro resta nascosto finché non ha votato anche lui. */
   let scope = 'miei';
   const isMine = v => !!v._mine || (v.user_id === currentUser?.id && !v._all.length);
-  const daProvare = v => !v._mine && v._all.length > 0;
+  const daProvare = v => v._all.some(r => r.user_id !== currentUser?.id);   // NUOVO · tutti i vini recensiti dall'altro (voto nascosto finché non voto io)
   function altroNome(){
     for (const v of vini) for (const r of v._all) if (r.user_id !== currentUser?.id && r.autore) return r.autore;
     return "dell'altro";
@@ -1509,7 +1509,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         g.innerHTML = `<div class="empty"><b>Non hai ancora recensito vini</b>Tocca il pulsante in basso per registrare il primo.${vini.some(daProvare) ? `<br>Oppure guarda quelli recensiti da ${esc(altroNome())} qui sopra.` : ''}</div>`;
         return;
       }
-      if (view === 'recensiti' && scope === 'altri' && !list.length && !$('#q').value.trim()){ g.innerHTML = `<div class="empty"><b>Niente da provare</b>Hai già recensito tutti i vini di ${esc(altroNome())}.</div>`; return; }   // NUOVO
+      if (view === 'recensiti' && scope === 'altri' && !list.length && !$('#q').value.trim()){ g.innerHTML = `<div class="empty"><b>Nessun vino</b>${esc(altroNome())} non ha ancora recensito vini.</div>`; return; }   // NUOVO
       g.innerHTML = view === 'cantina'
         ? `<div class="empty"><b>Nessuna bottiglia in cantina</b>Quando registri un vino, spunta "Ce l'ho in cantina?" per ritrovarlo qui.</div>`
         : `<div class="empty"><b>Nessun risultato</b>${abbFiltro ? `Nessun vino segnato con "${esc(abbFiltro)}" per questi filtri.` : 'Prova a cambiare filtro o ricerca.'}</div>`;
