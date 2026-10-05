@@ -33,6 +33,30 @@ where schemaname = 'public' and not rowsecurity;
 update public.profiles set totp_secret = null, totp_enabled = false;
 
 
+-- ── 4) Utenti con pagine limitate (es. Elisa: solo vini + dashboard) ──
+-- Chi ha app_metadata.pages vede solo quelle pagine e solo le tabelle elencate qui.
+-- Chi non ha "pages" (Giulio) vede tutto.
+do $$
+declare t record;
+begin
+  for t in select tablename from pg_tables
+           where schemaname = 'public' and rowsecurity
+             and tablename not in ('vini', 'dashboard_config') loop
+    execute format('drop policy if exists "solo_utenti_completi" on public.%I', t.tablename);
+    execute format(
+      'create policy "solo_utenti_completi" on public.%I as restrictive for all to authenticated
+         using ((select auth.jwt() -> ''app_metadata'' -> ''pages'') is null)
+         with check ((select auth.jwt() -> ''app_metadata'' -> ''pages'') is null)',
+      t.tablename);
+  end loop;
+end $$;
+
+-- Assegna a Elisa le sue pagine (sostituire l'email). La prima è quella di arrivo dopo il login.
+-- update auth.users
+-- set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"pages":["vini","dashboard"]}'::jsonb
+-- where email = 'elisa@esempio.it';
+
+
 -- ═══════════════════════════════════════════════════════════════
 -- RESET 2FA (telefono/app persi)
 -- Sostituire l'email e eseguire. Al login successivo la pagina

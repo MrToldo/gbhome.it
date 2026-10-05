@@ -269,6 +269,11 @@ const SUPABASE_URL  = 'https://wgyjsnvygmxfheiubfjo.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndneWpzbnZ5Z214ZmhlaXViZmpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4Njg1NzQsImV4cCI6MjA5NzQ0NDU3NH0.bgb3wAgYQt6omORw47MNgW6VYVITRdj5v6R68FeXsSY';
 const HUB_URL       = 'hub.html';
 const APP_NAME      = 'GB Suite';
+/* NUOVO: pagina di arrivo in base alle pagine consentite all'utente (app_metadata.pages) */
+function homeUrl() {
+  const pg = currentUser?.app_metadata?.pages;
+  return (Array.isArray(pg) && pg.length && !pg.includes('hub')) ? pg[0] + '.html' : HUB_URL;
+}
 
 /* ══ INIT ══ */
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
@@ -476,7 +481,7 @@ function goToSuccess() {
   markTrustedToday();
   setStep(3); showPanel('panelSuccess');
   requestAnimationFrame(() => { document.getElementById('progressBar').style.width = '100%'; });
-  setTimeout(() => { window.location.href = HUB_URL; }, 2600);
+  setTimeout(() => { window.location.href = homeUrl(); }, 2600);
 }
 
 /* ERRORI */
@@ -500,7 +505,7 @@ function tradErr(msg) {
   if (factor) {
     if (isTrustedToday() && aal?.currentLevel === 'aal2') {
       // 2FA già verificato oggi su questo dispositivo: accesso diretto, nessuna richiesta.
-      window.location.href = HUB_URL;
+      window.location.href = homeUrl();
       return;
     }
     // Sessione presente ma trust scaduto (giorno nuovo) o mai impostato:
