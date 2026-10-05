@@ -2763,6 +2763,11 @@
 const SUPABASE_URL = "https://wgyjsnvygmxfheiubfjo.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndneWpzbnZ5Z214ZmhlaXViZmpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4Njg1NzQsImV4cCI6MjA5NzQ0NDU3NH0.bgb3wAgYQt6omORw47MNgW6VYVITRdj5v6R68FeXsSY";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* NUOVO · ai-proxy: si usa il token della sessione (login + 2FA), non più la chiave pubblica */
+async function aiProxyAuth(){
+  try { const { data:{ session } } = await supabaseClient.auth.getSession(); if (session?.access_token) return 'Bearer ' + session.access_token; } catch(e){}
+  return 'Bearer ' + SUPABASE_ANON_KEY;
+}
 
 let parsedTrades = [];
 let parsedCandles = [];
@@ -5435,7 +5440,7 @@ document.getElementById('tvLightbox').addEventListener('click', e => { if(e.targ
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Authorization': await aiProxyAuth(),   // NUOVO
       },
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1500, system: systemPrompt, messages: msgs })
     });
@@ -5551,7 +5556,7 @@ document.getElementById('tvLightbox').addEventListener('click', e => { if(e.targ
       const msgs = [...tradeModalHistory.slice(0, -1), { role: 'user', content: userContent }];
       const response = await fetch('https://wgyjsnvygmxfheiubfjo.supabase.co/functions/v1/ai-proxy', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+        headers: { 'Content-Type': 'application/json', 'Authorization': await aiProxyAuth() },   // NUOVO
         body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 600, system: systemPrompt, messages: msgs })
       });
       return response.json();
@@ -7156,7 +7161,7 @@ COME USARE LE NUOVE ANALYTICS NEL REPORT:
   async function callAI({ system, messages, maxTokens = 2000 }) {
     const res = await fetch('https://wgyjsnvygmxfheiubfjo.supabase.co/functions/v1/ai-proxy', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+      headers: { 'Content-Type': 'application/json', 'Authorization': await aiProxyAuth() },   // NUOVO
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, system, messages })
     });
     const data = await res.json();
