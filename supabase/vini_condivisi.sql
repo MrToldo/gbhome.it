@@ -75,3 +75,15 @@ alter table public.vini
   add column paese    text,
   add column lat      double precision,
   add column lng      double precision;
+
+-- ═══ 2026-10-05 · perlage, bottiglie, da bere entro, acquisto, liste (GIÀ APPLICATO) ═══
+alter table public.vini_recensioni
+  add column perlage_grana       text,
+  add column perlage_numero      text,
+  add column perlage_persistenza text;
+alter table public.vini
+  add column bottiglie  smallint check (bottiglie >= 0),
+  add column bere_entro smallint check (bere_entro between 1900 and 2200),
+  add column acquisto   text,
+  add column liste      text[] not null default '{}';
+update public.vini set bottiglie = 1 where in_cantina is true and bottiglie is null;

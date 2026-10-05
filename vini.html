@@ -106,6 +106,28 @@ input,select,textarea{font-family:var(--font-ui);}
 .webgrid button img{object-fit:contain!important;background:#fff;}
 .perl-row{margin-top:4px;}
 .perl-row .sub-l{margin:8px 0 7px;}
+/* NUOVO · bottiglie, liste, stasera, etichetta, coppia */
+@media(max-width:420px){ .view-tabs button svg{display:none;} .view-tabs button{font-size:13px;padding:10px 4px;} }
+.stepper{display:flex;align-items:center;gap:6px;background:var(--bg-panel);border-radius:12px;padding:4px;}
+.stepper button{width:44px;height:40px;border:0;border-radius:9px;background:var(--bg-base);color:var(--text-hi);font-size:20px;font-weight:800;cursor:pointer;}
+.stepper span{flex:1;text-align:center;font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;}
+.bot-badge{position:absolute;right:10px;bottom:10px;min-width:30px;height:26px;padding:0 8px;border-radius:9px;background:rgba(16,20,31,.86);color:var(--text-hi);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:3px;}
+.bot-badge.soon{background:var(--wine);color:var(--ink-on-wine);}
+.list-badge{position:absolute;left:10px;top:12px;padding:3px 8px;border-radius:999px;background:rgba(16,20,31,.86);color:var(--wine);font-size:10.5px;font-weight:800;}
+.bot-box{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg-panel);border-radius:12px;padding:10px 12px;margin-bottom:14px;font-weight:700;font-size:14px;}
+.bot-box b{font-size:18px;color:var(--wine);}
+.bot-box .sp{flex:1;}
+.bot-box button{border:0;border-radius:999px;padding:8px 13px;font-weight:800;font-size:13px;cursor:pointer;background:var(--bg-base);color:var(--text-hi);}
+.bot-box button.main{background:var(--wine);color:var(--ink-on-wine);}
+.stasera-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:0 0 14px;padding:13px;border-radius:14px;border:1.5px solid var(--wine-ring);background:var(--wine-glow);color:var(--text-hi);font-weight:800;font-size:15px;cursor:pointer;}
+.st-res .dup-it{padding:10px 0;}
+.st-res .why{font-size:12.5px;color:var(--text-mid);font-weight:600;margin-top:3px;white-space:normal;}
+.st-nota{margin-top:10px;font-size:13px;color:var(--text-mid);font-weight:600;}
+.lbl-btn{display:none;width:100%;margin:-8px 0 16px;}
+.lbl-btn.show{display:flex;}
+.coppia h4{margin-top:4px;}
+.coppia .row{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;padding:5px 0;border-bottom:1px solid var(--border-soft);}
+.coppia .row span:last-child{color:var(--text-mid);white-space:nowrap;}
 /* NUOVO · mappa */
 .scope-tabs{margin-bottom:14px;}
 .scope-tabs button b{color:var(--wine);margin-left:4px;}
@@ -537,11 +559,13 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
 
   <div class="view-tabs" id="viewTabs">
     <button type="button" class="on" data-view="recensiti"><svg viewBox="0 0 24 24"><path d="M8 2h8l-.5 7a3.5 3.5 0 0 1-7 0z"/><path d="M12 13v8M8 21h8"/></svg>Recensiti</button>
-    <button type="button" data-view="cantina"><svg viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21V12h6v9"/></svg>In cantina</button>
+    <button type="button" data-view="cantina"><svg viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21V12h6v9"/></svg>Cantina</button>
+    <button type="button" data-view="lista"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>Lista</button>   <!-- NUOVO · da comprare / da regalare -->
     <button type="button" data-view="mappa"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Mappa</button>   <!-- NUOVO -->
   </div>
 
-  <div class="map-mode scope-tabs" id="scopeTabs" hidden></div>   <!-- NUOVO · i miei vini / recensiti dall'altro -->
+  <div class="map-mode scope-tabs" id="scopeTabs" hidden></div>
+  <button type="button" class="stasera-btn" id="staseraBtn">🍽️ Cosa apriamo stasera?</button>   <!-- NUOVO -->   <!-- NUOVO · i miei vini / recensiti dall'altro -->
 
   <!-- NUOVO · MAPPA dei vini (Leaflet + OpenStreetMap) -->
   <section class="map-wrap" id="mapWrap" hidden>
@@ -613,6 +637,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
           <button type="button" data-src="web"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Online</button>
           <button type="button" data-src="ai"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/></svg>IA</button>   <!-- NUOVO · foto scelta dall'IA -->
         </div>
+        <button type="button" class="btn-ai lbl-btn" id="btnLabel">📷 Leggi l'etichetta con l'IA</button>   <!-- NUOVO -->
       </div>
 
       <div class="field">
@@ -652,12 +677,27 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         </div>
       </div>
 
-      <div class="field">
-        <span class="flabel">Ce l'abbiamo in cantina?</span>
-        <div class="yn" id="cantinaYn">
-          <button type="button" class="yes" data-v="1">Sì</button>
-          <button type="button" class="no" data-v="0">No</button>
+      <!-- NUOVO · cantina: numero di bottiglie e da bere entro -->
+      <div class="row2 field">
+        <div>
+          <span class="flabel">Bottiglie in cantina</span>
+          <div class="stepper" id="botStep"><button type="button" data-d="-1" aria-label="Meno">−</button><span id="botN">0</span><button type="button" data-d="1" aria-label="Più">+</button></div>
         </div>
+        <div>
+          <label class="flabel" for="fBereEntro">Da bere entro</label>
+          <input class="in" id="fBereEntro" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Anno, es. 2028">
+        </div>
+      </div>
+
+      <!-- NUOVO · dove comprarlo e liste -->
+      <div class="field">
+        <label class="flabel" for="fAcquisto">Dove si compra</label>
+        <input class="in" id="fAcquisto" list="acquistoList" placeholder="Enoteca, cantina, sito…" autocomplete="off" autocapitalize="sentences">
+        <datalist id="acquistoList"></datalist>
+      </div>
+      <div class="field">
+        <span class="flabel">Liste</span>
+        <div class="chips" id="listeChips"></div>
       </div>
 
       <!-- NUOVO · dove si produce: serve per la mappa -->
@@ -774,6 +814,31 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
 </div>
 
 <!-- SHEET DETTAGLIO -->
+<!-- NUOVO · COSA APRIAMO STASERA -->
+<div class="overlay" id="staseraOv">
+  <div class="sheet" role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <h3>Cosa apriamo stasera?</h3>
+      <button class="icon-btn" type="button" data-close="staseraOv" aria-label="Chiudi"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="sheet-body">
+      <div class="field">
+        <label class="flabel" for="stMenu">Cosa mangiate?</label>
+        <textarea class="in" id="stMenu" placeholder="Es. grigliata di carne, risotto ai funghi, sushi…"></textarea>
+      </div>
+      <div class="field">
+        <span class="flabel">Tra quali vini</span>
+        <div class="chips" id="stScope">
+          <button type="button" class="chip on" data-v="cantina">Solo quelli in cantina</button>
+          <button type="button" class="chip" data-v="tutti">Tutto il catalogo</button>
+        </div>
+      </div>
+      <button class="btn btn-primary" type="button" id="stGo" style="width:100%;">Consiglia</button>
+      <div class="st-res" id="stRes" style="margin-top:16px;"></div>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="detOv">
   <div class="sheet" role="dialog" aria-modal="true">
     <div class="sheet-head">
@@ -836,6 +901,11 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   const NASO    = ['Fruttato','Frutti rossi','Frutti neri','Agrumi','Floreale','Erbaceo','Speziato','Legno/Tostato','Vaniglia','Minerale'];
   const BOCCA   = ['Secco','Morbido','Tannico','Fresco','Sapido','Caldo','Persistente','Amabile','Frizzante'];
   const FORMATO = ['Calice','Bottiglia'];
+  const LISTE = ['Da comprare', 'Da regalare'];   // NUOVO
+  const thisYear = new Date().getFullYear();      // NUOVO
+  const botOf = v => v.bottiglie ?? (v.in_cantina ? 1 : 0);   // NUOVO · bottiglie (i vecchi "in cantina" valgono 1)
+  const soon = v => botOf(v) > 0 && v.bere_entro && v.bere_entro <= thisYear + 1;   // NUOVO · da bere presto
+  let listaScope = 'Da comprare';                  // NUOVO
   /* NUOVO · perlage (termini da degustazione) */
   const PERLAGE = {
     grana:       { sel:'#pgGrana',  col:'perlage_grana',       val:['Fine','Abbastanza fine','Grossolana'] },
@@ -1350,6 +1420,11 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   }
   function renderScopeTabs(){
     const el = $('#scopeTabs');
+    if (view === 'lista'){   // NUOVO · da comprare / da regalare
+      el.hidden = false;
+      el.innerHTML = LISTE.map(l => `<button type="button" data-l="${esc(l)}" class="${listaScope === l ? 'on' : ''}">${esc(l)}<b>${vini.filter(v => (v.liste || []).includes(l)).length}</b></button>`).join('');
+      return;
+    }
     const nAlt = vini.filter(daProvare).length;
     if (view !== 'recensiti' || (!nAlt && scope === 'miei')){ el.hidden = true; if (!nAlt) scope = 'miei'; return; }
     el.hidden = false;
@@ -1358,8 +1433,52 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   }
   $('#scopeTabs').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.l){ listaScope = b.dataset.l; renderScopeTabs(); renderGrid(); return; }   // NUOVO
     scope = b.dataset.s; renderScopeTabs(); renderGrid();
   });
+  /* ═══ FINE NUOVO ═══ */
+
+  /* ═══ NUOVO · COSA APRIAMO STASERA (IA) ═══
+     Si mandano solo i dati visibili all'utente (rispetta la recensione alla cieca). */
+  let stScope = 'cantina';
+  $('#staseraBtn').addEventListener('click', () => {
+    stScope = vini.some(v => botOf(v) > 0) ? 'cantina' : 'tutti';
+    document.querySelectorAll('#stScope .chip').forEach(b => b.classList.toggle('on', b.dataset.v === stScope));
+    $('#stRes').innerHTML = '';
+    openOv('staseraOv'); setTimeout(() => $('#stMenu').focus(), 200);
+  });
+  $('#stScope').addEventListener('click', e => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    stScope = b.dataset.v;
+    document.querySelectorAll('#stScope .chip').forEach(x => x.classList.toggle('on', x === b));
+  });
+  $('#stGo').addEventListener('click', async () => {
+    const menu = $('#stMenu').value.trim();
+    if (!menu){ toast('Scrivi cosa mangiate'); return; }
+    const pool = vini.filter(v => v.nome !== 'Da completare' && (stScope === 'cantina' ? botOf(v) > 0 : (isMine(v) || botOf(v) > 0)));
+    if (!pool.length){ toast(stScope === 'cantina' ? 'Nessuna bottiglia in cantina: prova con tutto il catalogo' : 'Nessun vino nel catalogo'); return; }
+    const isB = x => vociOf('bocca').some(y => sameText(x, y));
+    const payload = pool.map(v => ({
+      id: v.id, nome: v.nome, cantina: v.cantina, annata: v.annata, tipo: v.tipo, metodo: v.metodo, regione: v.regione, vitigno: v.vitigno,
+      prezzo: v.prezzo, bottiglie: botOf(v), bere_entro: v.bere_entro,
+      voto: v._media != null ? Math.round(v._media * 10) / 10 : v.voto, corpo: v.corpo,
+      naso: (v.tag || []).filter(x => !isB(x)), bocca: (v.tag || []).filter(isB), abbinamenti: v._abb
+    }));
+    const btn = $('#stGo'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Ci penso…';
+    $('#stRes').innerHTML = '';
+    try {
+      const d = await callFn(FN_AI, { action: 'stasera', menu, vini: payload });
+      const scelte = (d.scelte || []).map(x => ({ v: vini.find(w => w.id === x.id), perche: x.perche })).filter(x => x.v);
+      $('#stRes').innerHTML = scelte.length
+        ? `<div class="dup-box" style="display:block">${scelte.map(({ v, perche }) => `<div class="dup-it"><div class="tx"><div class="n">${esc(v.nome)}</div>
+            <div class="m">${esc([v.cantina, v.annata, botOf(v) ? '×' + botOf(v) + ' in cantina' : null].filter(Boolean).join(' · '))}</div>
+            <div class="why">${esc(perche || '')}</div></div><button type="button" data-open="${v.id}">Apri</button></div>`).join('')}</div>
+           ${d.nota ? `<div class="st-nota">💡 ${esc(d.nota)}</div>` : ''}`
+        : '<div class="rev-empty">Nessun vino adatto tra questi: prova con tutto il catalogo.</div>';
+    } catch(e){ console.error(e); toast('Consiglio non riuscito: ' + (e.message || e), 4000); }
+    finally { btn.disabled = false; btn.textContent = 'Consiglia'; }
+  });
+  $('#stRes').addEventListener('click', e => { const b = e.target.closest('[data-open]'); if (!b) return; closeOv('staseraOv'); openDetail(b.dataset.open); });
   /* ═══ FINE NUOVO ═══ */
 
   /* ══ CARICAMENTO ══ */
@@ -1388,30 +1507,37 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     const b = e.target.closest('button'); if (!b) return;
     view = b.dataset.view;
     document.querySelectorAll('#viewTabs button').forEach(x => x.classList.toggle('on', x === b));
-    $('#taste').style.display = view === 'cantina' ? 'none' : '';
+    $('#taste').style.display = view === 'cantina' || view === 'lista' ? 'none' : '';   // NUOVO · + lista
     filtro = 'tutti';
     /* NUOVO · vista mappa */
     const isMap = view === 'mappa';
     ['#stats', '.toolbar', '#filters', '#abbFilters', '#grid'].forEach(sel => { const el = $(sel); if (el) el.hidden = isMap; });
     if (isMap) $('#taste').style.display = 'none';
     $('#mapWrap').hidden = !isMap;
+    $('#staseraBtn').hidden = isMap || view === 'lista';   // NUOVO
     renderScopeTabs();   // NUOVO
     if (isMap){ renderMap(); geocodeMissing(); return; }
     renderStats(); renderFilters(); renderGrid();
   });
 
   function renderStats(){
+    if (view === 'lista'){   // NUOVO
+      const c = LISTE.map(l => vini.filter(v => (v.liste || []).includes(l)).length);
+      $('#stats').innerHTML = `<div class="stat"><div class="stat-v">${c[0]}</div><div class="stat-l">Da comprare</div></div>
+        <div class="stat accent"><div class="stat-v">${c[1]}</div><div class="stat-l">Da regalare</div></div>`;
+      return;
+    }
     if (view === 'cantina'){
-      const list = vini.filter(v => v.in_cantina);
-      const n = list.length;
-      const valore = list.reduce((a, v) => a + (v.prezzo || 0), 0);
+      const list = vini.filter(v => botOf(v) > 0);   // NUOVO · bottiglie
+      const n = list.reduce((a, v) => a + botOf(v), 0);
+      const valore = list.reduce((a, v) => a + (v.prezzo || 0) * botOf(v), 0);
       const tipiN = new Set(list.map(v => v.tipo).filter(Boolean)).size;
-      const bolle = list.filter(v => v.tipo === 'bollicine').length;
+      const presto = list.filter(soon).length;
       $('#stats').innerHTML = `
         <div class="stat"><div class="stat-v">${n}</div><div class="stat-l">Bottiglie in cantina</div></div>
         <div class="stat accent"><div class="stat-v" style="font-size:20px;">${valore ? fmtEur(valore) : '–'}</div><div class="stat-l">Valore stimato</div></div>
         <div class="stat"><div class="stat-v">${tipiN || '–'}</div><div class="stat-l">Tipi diversi</div></div>
-        <div class="stat"><div class="stat-v">${bolle}</div><div class="stat-l">Bollicine pronte</div></div>`;
+        <div class="stat"><div class="stat-v">${presto}</div><div class="stat-l">Da bere presto</div></div>`;   // NUOVO
       return;
     }
     const n = vini.filter(v => v._mine).length;   // NUOVO · vini che ho recensito io
@@ -1431,6 +1557,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     const votati = vini.filter(v => v.voto != null);
     if (votati.length < 3){
       body.innerHTML = '<div class="taste-empty">Registra almeno 3 vini con voto per vedere cosa ti piace davvero.</div>';
+      body.insertAdjacentHTML('beforeend', coppiaHtml());   // NUOVO
       return;
     }
     const byTipo = TIPI.map(t => {
@@ -1458,6 +1585,30 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         <h4>Ricorre nei vini da 5 in giù</h4>
         <div class="tagcloud">${hate.length ? hate.map(([k, n]) => `<span>${esc(k)}<b>${n}</b></span>`).join('') : '<span>Ancora nessuno</span>'}</div>
       </div>`;
+    body.insertAdjacentHTML('beforeend', coppiaHtml());   // NUOVO
+  }
+  /* NUOVO · GUSTI DI COPPIA: solo vini votati da entrambi (quindi già visibili a tutti e due) */
+  function coppiaHtml(){
+    const both = vini.filter(v => v._mine?.voto != null && v._others.some(r => r.voto != null))
+      .map(v => ({ v, a: v._mine.voto, b: v._others.find(r => r.voto != null).voto, altro: v._others.find(r => r.voto != null) }));
+    if (!both.length) return '';
+    const nomeAltro = nameOf(both[0].altro);
+    const accordo = both.filter(x => Math.abs(x.a - x.b) <= 1).length;
+    const diff = [...both].sort((x, y) => Math.abs(y.a - y.b) - Math.abs(x.a - x.b)).filter(x => Math.abs(x.a - x.b) >= 2).slice(0, 3);
+    const top = [...both].sort((x, y) => (y.a + y.b) - (x.a + x.b)).slice(0, 3);
+    const comuni = {};
+    both.filter(x => x.a >= 8 && x.b >= 8).forEach(x => {
+      const mine = new Set(x.v._mine.tag || []); (x.altro.tag || []).filter(t => mine.has(t)).forEach(t => comuni[t] = (comuni[t] || 0) + 1);
+    });
+    const tc = Object.entries(comuni).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const row = (x) => `<div class="row"><span>${esc(x.v.nome)}</span><span>tu ${x.a} · ${esc(nomeAltro)} ${x.b}</span></div>`;
+    return `<div class="coppia">
+      <h4>Di coppia · ${both.length} ${both.length === 1 ? 'vino votato' : 'vini votati'} da entrambi</h4>
+      <div class="taste-empty" style="padding:0 0 8px">D'accordo (differenza ≤ 1) su <b>${accordo}</b> su ${both.length}.</div>
+      <h4>I vostri preferiti</h4>${top.map(row).join('')}
+      ${diff.length ? `<h4>Dove non siete d'accordo</h4>${diff.map(row).join('')}` : ''}
+      ${tc.length ? `<h4>Piace a tutti e due</h4><div class="tagcloud love">${tc.map(([k, n]) => `<span>${esc(k)}<b>${n}</b></span>`).join('')}</div>` : ''}
+    </div>`;
   }
 
   function renderFilters(){
@@ -1500,7 +1651,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   function visibleList(){
     const q = $('#q').value.trim().toLowerCase();
     let list = vini.filter(v => {
-      if (view === 'cantina' && !v.in_cantina) return false;   // NUOVO
+      if (view === 'cantina' && !(botOf(v) > 0)) return false;   // NUOVO · bottiglie
+      if (view === 'lista' && !(v.liste || []).includes(listaScope)) return false;   // NUOVO · lista
       if (view === 'recensiti' && !(scope === 'miei' ? isMine(v) : daProvare(v))) return false;   // NUOVO · miei / dell'altro
       if (filtro === 'top' && !(v.voto >= 8)) return false;
       if (filtro === 'nofoto' && v.foto_url) return false;
@@ -1508,7 +1660,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       if (TIPI.some(t => t.k === filtro) && v.tipo !== filtro) return false;
       if (abbFiltro && !v._abbAll.includes(abbFiltro)) return false;   // NUOVO
       if (q){
-        const hay = [v.nome, v.cantina, v.vitigno, v.regione, v.localita, v.paese, v.annata, ...v._revs.flatMap(r => [r.luogo, r.note, r.autore, ...(r.tag || []), ...(r.abbinamenti || []), ...(r.occasione || [])])].join(' ').toLowerCase();   // NUOVO · cerca in tutte le recensioni
+        const hay = [v.nome, v.cantina, v.vitigno, v.regione, v.localita, v.paese, v.acquisto, ...(v.liste || []), v.annata, ...v._revs.flatMap(r => [r.luogo, r.note, r.autore, ...(r.tag || []), ...(r.abbinamenti || []), ...(r.occasione || [])])].join(' ').toLowerCase();   // NUOVO · cerca in tutte le recensioni
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -1518,6 +1670,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     if (s === 'nome') list.sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'it'));
     if (s === 'media') list.sort((a, b) => (b._media ?? -1) - (a._media ?? -1) || (b.voto ?? -1) - (a.voto ?? -1));   // NUOVO
     if (s === 'prezzo') list.sort((a, b) => (a.prezzo ?? 1e9) - (b.prezzo ?? 1e9));   // NUOVO · dal più economico
+    if (view === 'cantina' && s === 'data') list.sort((a, b) => (a.bere_entro ?? 9999) - (b.bere_entro ?? 9999));   // NUOVO · in cantina: prima quelli da bere presto
     return list;
   }
 
@@ -1534,6 +1687,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         return;
       }
       if (view === 'recensiti' && scope === 'altri' && !list.length && !$('#q').value.trim()){ g.innerHTML = `<div class="empty"><b>Nessun vino</b>${esc(altroNome())} non ha ancora recensito vini.</div>`; return; }   // NUOVO
+      if (view === 'lista'){ g.innerHTML = `<div class="empty"><b>Lista vuota</b>Apri un vino, tocca Modifica e in "Liste" scegli "${esc(listaScope)}".</div>`; return; }   // NUOVO
       g.innerHTML = view === 'cantina'
         ? `<div class="empty"><b>Nessuna bottiglia in cantina</b>Quando registri un vino, spunta "Ce l'ho in cantina?" per ritrovarlo qui.</div>`
         : `<div class="empty"><b>Nessun risultato</b>${abbFiltro ? `Nessun vino segnato con "${esc(abbFiltro)}" per questi filtri.` : 'Prova a cambiare filtro o ricerca.'}</div>`;
@@ -1548,7 +1702,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         <button type="button" class="wcard" data-id="${v.id}" style="animation-delay:${Math.min(i * 35, 400)}ms">
           <div class="ph">
             ${v.foto_url ? `<img src="${esc(v.foto_url)}" alt="" loading="lazy">` : `<div class="noimg">${bottleSvg(t ? t.c : '#5f6b83')}</div>`}
-            ${v.in_cantina ? `<span class="cellar-badge" title="In cantina"><svg viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21V12h6v9"/></svg></span>` : ''}
+            ${botOf(v) > 0 ? `<span class="bot-badge${soon(v) ? ' soon' : ''}" title="${soon(v) ? 'Da bere entro ' + v.bere_entro : 'Bottiglie in cantina'}">×${botOf(v)}</span>` : ''}   <!-- NUOVO · bottiglie -->
+            ${(v.liste || []).length ? `<span class="list-badge">${esc(v.liste.join(' · '))}</span>` : ''}   <!-- NUOVO · liste -->
             <span class="vbadge ${vcls}">${v.voto ?? '–'}</span>
             ${v._others.map(r => `<span class="vbadge2" title="Voto di ${esc(nameOf(r))}">${esc(nameOf(r).charAt(0).toUpperCase())} <b>${r.voto ?? '–'}</b></span>`).join('')}
             ${v._hidden.map(r => `<span class="vbadge2 hid" title="${esc(nameOf(r))} l'ha recensito: vedrai il voto dopo aver dato il tuo">${esc(nameOf(r).charAt(0).toUpperCase())} <b>?</b></span>`).join('')}   <!-- NUOVO · alla cieca -->
@@ -1572,6 +1727,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     $('#luoghiList').innerHTML  = uniq('luogo').map(x => `<option value="${esc(x)}">`).join('');
     $('#vitigniList').innerHTML = uniq('vitigno').map(x => `<option value="${esc(x)}">`).join('');
     $('#regioniList').innerHTML = uniq('regione').map(x => `<option value="${esc(x)}">`).join('');
+    $('#acquistoList').innerHTML = uniq('acquisto').map(x => `<option value="${esc(x)}">`).join('');   // NUOVO
     $('#localitaList').innerHTML = uniq('localita').map(x => `<option value="${esc(x)}">`).join('');   // NUOVO
     $('#paesiList').innerHTML = [...new Set([...PAESI, ...uniq('paese')])].map(x => `<option value="${esc(x)}">`).join('');   // NUOVO
   }
@@ -1594,6 +1750,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   (function buildForm(){
     const five = Array.from({ length:5 }, (_, i) => `<button type="button" data-v="${i + 1}">${i + 1}</button>`).join('');   // NUOVO · voto diviso
     $('#votoNaso').innerHTML = five; $('#votoBocca').innerHTML = five;
+    $('#listeChips').innerHTML = LISTE.map(x => `<button type="button" class="chip" data-v="${esc(x)}">${esc(x)}</button>`).join('');   // NUOVO
     Object.values(PERLAGE).forEach(p => { $(p.sel).innerHTML = p.val.map(x => `<button type="button" class="chip" data-v="${esc(x)}">${esc(x)}</button>`).join(''); });   // NUOVO · perlage
     $('#tipoChips').innerHTML = TIPI.map(t => `<button type="button" class="chip" data-v="${t.k}"><span class="dot" style="background:${t.c}"></span>${t.l}</button>`).join('');
     const simple = (arr) => arr.map(x => `<button type="button" class="chip" data-v="${esc(x)}">${esc(x)}</button>`).join('');
@@ -1681,7 +1838,9 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     document.querySelectorAll('#nasoChips .chip, #boccaChips .chip').forEach(b => b.classList.toggle('on', F.tags.has(b.dataset.v)));
     document.querySelectorAll('#abbChips .chip').forEach(b => b.classList.toggle('on', F.abb.has(b.dataset.v)));   // NUOVO
     document.querySelectorAll('#occChips .chip').forEach(b => b.classList.toggle('on', F.occ.has(b.dataset.v)));   // NUOVO
-    document.querySelectorAll('#cantinaYn button').forEach(b => b.classList.toggle('on', F.inCantina != null && (b.dataset.v === '1') === F.inCantina));   // NUOVO
+    $('#botN').textContent = F.bot;   // NUOVO · bottiglie
+    document.querySelectorAll('#listeChips .chip').forEach(b => b.classList.toggle('on', F.liste.has(b.dataset.v)));   // NUOVO
+    $('#btnLabel').classList.toggle('show', !!F.blob);   // NUOVO · etichetta leggibile solo da foto scattata/caricata
     $('#fTemp').placeholder = 'Es. ' + (TEMP_HINT[F.tipo] || '16-18°C');   // NUOVO · suggerimento in base al tipo
     const pp = $('#photoPick');
     pp.querySelector('img')?.remove();
@@ -1716,7 +1875,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     const b = e.target.closest('.chip:not(.add)'); if (!b) return;   // NUOVO · esclude "+ Aggiungi"
     F.tags.has(b.dataset.v) ? F.tags.delete(b.dataset.v) : F.tags.add(b.dataset.v); paintForm();
   }));
-  $('#cantinaYn').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const v = b.dataset.v === '1'; F.inCantina = F.inCantina === v ? null : v; paintForm(); });   // NUOVO
+  $('#botStep').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; F.bot = Math.max(0, F.bot + (+b.dataset.d)); paintForm(); });   // NUOVO
+  $('#listeChips').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; F.liste.has(b.dataset.v) ? F.liste.delete(b.dataset.v) : F.liste.add(b.dataset.v); paintForm(); });   // NUOVO
   /* NUOVO · tre sorgenti foto (form e dettaglio) */
   document.addEventListener('click', e => {
     const b = e.target.closest('.photo-actions button'); if (!b) return;
@@ -1733,13 +1893,13 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     paintForm();
   });
 
-  const INPUTS = { nome:'#fNome', cantina:'#fCantina', annata:'#fAnnata', luogo:'#fLuogo', note:'#fNote', vitigno:'#fVitigno', regione:'#fRegione', prezzo:'#fPrezzo', data:'#fData', temperatura:'#fTemp', localita:'#fLocalita', paese:'#fPaese' };   // NUOVO · località, paese
+  const INPUTS = { nome:'#fNome', cantina:'#fCantina', annata:'#fAnnata', luogo:'#fLuogo', note:'#fNote', vitigno:'#fVitigno', regione:'#fRegione', prezzo:'#fPrezzo', data:'#fData', temperatura:'#fTemp', localita:'#fLocalita', paese:'#fPaese', bere_entro:'#fBereEntro', acquisto:'#fAcquisto' };   // NUOVO · + bere entro, acquisto   // NUOVO · località, paese
 
   function resetForm(){
     if (F?.preview) URL.revokeObjectURL(F.preview);
     const last = vini[0];
     const sameDay = last && last.data === todayISO();
-    F = { id:null, blob:null, preview:null, web:null, fotoAuto:false, fotoUrl:null, fotoPath:null, voto:null, tipo:null, corpo:null, formato:null, metodo:null, tags:new Set(), ricomprerei:null, inCantina:null, abb:new Set(), occ:new Set(), vn:null, vb:null, pg:{ grana:null, numero:null, persistenza:null } };   // NUOVO · vn/vb, perlage   // NUOVO · abb/occ
+    F = { id:null, blob:null, preview:null, web:null, fotoAuto:false, fotoUrl:null, fotoPath:null, voto:null, tipo:null, corpo:null, formato:null, metodo:null, tags:new Set(), ricomprerei:null, inCantina:null, abb:new Set(), occ:new Set(), vn:null, vb:null, pg:{ grana:null, numero:null, persistenza:null }, bot:0, liste:new Set() };   // NUOVO · vn/vb, perlage, bottiglie, liste   // NUOVO · abb/occ
     Object.values(INPUTS).forEach(s => $(s).value = '');
     $('#fData').value = todayISO();
     if (sameDay && last.luogo) $('#fLuogo').value = last.luogo;   // stessa serata, stesso posto
@@ -1755,6 +1915,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     F.voto = v.voto; F.tipo = v.tipo; F.corpo = v.corpo; F.formato = v.formato; F.metodo = v.metodo || null;
     F.tags = new Set(v.tag || []); F.ricomprerei = v.ricomprerei;
     F.inCantina = v.in_cantina;   // NUOVO
+    F.bot = botOf(v); F.liste = new Set(v.liste || []);   // NUOVO
+    $('#fBereEntro').value = v.bere_entro || ''; $('#fAcquisto').value = v.acquisto || '';   // NUOVO
     F.abb = new Set(v._mine?.abbinamenti || []); F.occ = new Set(v._mine?.occasione || []);   // NUOVO
     F.vn = v._mine?.voto_naso ?? null; F.vb = v._mine?.voto_bocca ?? null;   // NUOVO
     F.pg = { grana: v._mine?.perlage_grana || null, numero: v._mine?.perlage_numero || null, persistenza: v._mine?.perlage_persistenza || null };   // NUOVO
@@ -1796,7 +1958,9 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       ...(() => { const on = F.tipo === 'bollicine' || [...F.tags].some(t => sameText(t, 'Frizzante'));   // NUOVO · perlage
         return { perlage_grana: on ? F.pg.grana : null, perlage_numero: on ? F.pg.numero : null, perlage_persistenza: on ? F.pg.persistenza : null }; })(),
       voto: votoFinale(), voto_naso: F.vn, voto_bocca: F.vb, ricomprerei: F.ricomprerei,   // NUOVO · voto = olfatto + bocca
-      in_cantina: F.inCantina,   // NUOVO
+      in_cantina: F.bot > 0,   // NUOVO · deriva dal numero di bottiglie
+      bottiglie: F.bot, liste: [...F.liste], acquisto: val('#fAcquisto'),   // NUOVO
+      bere_entro: (() => { const y = parseInt($('#fBereEntro').value, 10); return y >= 1900 && y <= 2200 ? y : null; })(),   // NUOVO
       luogo: val('#fLuogo'), note: val('#fNote'),
       vitigno: val('#fVitigno'), regione: val('#fRegione'),
       localita: val('#fLocalita'), paese: val('#fPaese'),   // NUOVO
@@ -1812,11 +1976,34 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     $('#camInput').value = '';
     $('#camInput').click();
   }
+  /* NUOVO · LETTURA ETICHETTA CON L'IA: compila solo i campi vuoti */
+  async function readLabel(blob){
+    if (!blob) return;
+    const btn = $('#btnLabel'); btn.disabled = true;
+    toast("L'IA sta leggendo l'etichetta…", 20000);
+    try {
+      const dataUrl = await blobToDataURL(blob);
+      const d = await callFn(FN_AI, { action: 'etichetta', image: dataUrl.split(',')[1], media_type: 'image/jpeg' });
+      let n = 0;
+      const put = (sel, val) => { if (val != null && String(val).trim() && !$(sel).value.trim()){ $(sel).value = val; n++; } };
+      put('#fNome', d.nome); put('#fCantina', d.cantina); put('#fAnnata', d.annata);
+      put('#fLocalita', d.localita); put('#fRegione', d.regione); put('#fVitigno', d.vitigno);
+      if (d.paese && normTxt(d.paese) !== 'italia') put('#fPaese', d.paese);
+      if (!F.tipo && TIPI.some(t => t.k === d.tipo)){ F.tipo = d.tipo; n++; }
+      if (F.tipo === 'bollicine' && !F.metodo && METODO.includes(d.metodo)){ F.metodo = d.metodo; n++; }
+      paintForm(); renderDupBox();
+      toast(n ? `Etichetta letta: ${n} campi compilati 🍷` : 'Non sono riuscito a leggere nulla di nuovo', 3600);
+    } catch(e){ console.error(e); toast('Lettura etichetta non riuscita: ' + (e.message || e), 4000); }
+    finally { btn.disabled = false; }
+  }
+  $('#btnLabel').addEventListener('click', () => readLabel(F.blob));
+
   async function onPicked(e){
     const file = e.target.files[0]; if (!file) return;
     const blob = await compress(file);
     if (camTarget === 'form'){
       setPhoto(blob);
+      if (!$('#fNome').value.trim()) readLabel(blob);   // NUOVO · vino nuovo: l'IA legge l'etichetta
     } else if (camTarget === 'detail'){
       replaceDetailPhoto(blob);
     }
@@ -1871,7 +2058,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       { const cur = F.id ? vini.find(x => x.id === F.id) : null;   // NUOVO · località cambiata → posizione da ricalcolare
         if (cur && !joinCur && (normTxt(cur.localita) !== normTxt(w.localita) || normTxt(cur.paese) !== normTxt(w.paese) || normTxt(cur.regione) !== normTxt(w.regione))){ w.lat = null; w.lng = null; } }
       if (joinCur){   // NUOVO · unendo a un vino esistente non si sovrascrive la sua scheda: si riempiono solo i campi vuoti
-        Object.keys(w).forEach(k => { if (k === 'in_cantina' && w[k] === true) return; if (w[k] == null || w[k] === '' || (joinCur[k] != null && joinCur[k] !== '')) delete w[k]; });
+        Object.keys(w).forEach(k => { if (k === 'in_cantina' && w[k] === true) return; if (k === 'bottiglie' && w[k] > 0 && !(joinCur.bottiglie > 0)) return; if (k === 'liste' && w[k].length) return; if (w[k] == null || w[k] === '' || (joinCur[k] != null && joinCur[k] !== '')) delete w[k]; });
         if (!Object.keys(w).length) w.foto_auto = joinCur.foto_auto;   // update senza campi non è ammesso
       }
       if (F.id) res = await sb.from(TABLE).update(w).eq('id', F.id).select('id').single();
@@ -1934,6 +2121,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         </div>
         <div class="d-voto${v.voto == null ? ' none' : ''}">${v.voto ?? '–'}<small>/10</small></div>
       </div>
+      <div class="bot-box">In cantina: <b>${botOf(v)}</b> ${botOf(v) === 1 ? 'bottiglia' : 'bottiglie'}<span class="sp"></span>   <!-- NUOVO · bottiglie -->
+        ${botOf(v) > 0 ? '<button type="button" class="main" data-bot="-1">Aperta una</button>' : ''}<button type="button" data-bot="1">+1</button></div>
       ${v._revs.length > 1 && v._media != null ? `<div class="d-media" style="margin:-6px 0 14px;">Voto medio ${v._media.toFixed(1).replace('.', ',')} · ${v._revs.map(r => esc(nameOf(r)) + ' ' + (r.voto ?? '–')).join(' · ')}</div>` : ''}
       <div class="d-grid">
         ${cell('Vitigno', v.vitigno)}
@@ -1941,7 +2130,9 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         ${cell('Prezzo', v.prezzo != null ? fmtEur(v.prezzo) : '')}
         ${v.tipo === 'bollicine' ? cell('Metodo', v.metodo) : ''}
         ${cell('Temperatura di servizio', v.temperatura)}
-        ${v.in_cantina != null ? cell('In cantina', v.in_cantina ? 'Sì' : 'No') : ''}
+        ${cell('Dove si compra', v.acquisto)}   <!-- NUOVO -->
+        ${v.bere_entro ? cell('Da bere entro', String(v.bere_entro)) : ''}   <!-- NUOVO -->
+        ${(v.liste || []).length ? cell('Liste', v.liste.join(', ')) : ''}   <!-- NUOVO -->
       </div>
       ${v._abb.length ? `<div class="d-sub">Ci sta bene con</div><div class="d-tags">${v._abb.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}   <!-- NUOVO -->
       ${(() => { const d = similarWines(v.nome, v.cantina, v.annata, v.id); return d.length   // NUOVO · possibili doppioni
@@ -1963,6 +2154,14 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         </div>`;
       }).join('')}`;
     $('#dWrong')?.addEventListener('click', () => openWeb('detail'));
+    $('#detBody').querySelectorAll('[data-bot]').forEach(b => b.addEventListener('click', async () => {   // NUOVO · apri / aggiungi bottiglia
+      const n = Math.max(0, botOf(v) + (+b.dataset.bot));
+      b.disabled = true;
+      const { error } = await sb.from(TABLE).update({ bottiglie: n, in_cantina: n > 0 }).eq('id', v.id);
+      if (error){ toast('Errore: ' + error.message); b.disabled = false; return; }
+      toast(+b.dataset.bot < 0 ? (n ? `Salute! 🍷 Ne restano ${n}` : 'Salute! 🍷 Era l\'ultima') : `In cantina: ${n}`);
+      await load(); renderDetail();
+    }));
     $('#detBody').querySelectorAll('[data-merge]').forEach(b => b.addEventListener('click', async () => {   // NUOVO
       const other = vini.find(x => x.id === b.dataset.merge); if (!other) return;
       b.disabled = true;
