@@ -2,6 +2,8 @@
 // GB Suite · Edge Function "vini-ai"
 // Chiede a Claude (con ricerca web) dove si trova la cantina di un vino
 // e qualche dato di base. Risposta solo JSON.
+// NUOVO · action "etichetta": legge l'etichetta da una foto e compila la scheda
+// NUOVO · action "stasera":   consiglia 2-3 vini della lista ricevuta per un menu
 // - accesso solo a utenti collegati con 2FA superato (aal2) e pagina "vini" consentita
 // - prompt fisso e corto, modello e token fissati qui (nessun parametro libero dal browser)
 // Secret usato: ANTHROPIC_API_KEY (già presente nel progetto)
@@ -41,6 +43,40 @@ function parseJson(text: string) {
   if (!m) return null;
   try { return JSON.parse(m[0]); } catch { return null; }
 }
+
+/* ═══ NUOVO · chiamata generica (senza ricerca web) ═══ */
+async function callClaude(system: string, content: unknown, max_tokens: number) {
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({ model: MODEL, max_tokens, system, messages: [{ role: "user", content }] }),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data?.error?.message || `Anthropic ${r.status}`);
+  return (data.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n");
+}
+
+const SYSTEM_ETICHETTA = `Sei un sommelier. Ricevi la foto di un'etichetta o di una bottiglia di vino.
+Leggi l'etichetta e rispondi SOLO con un oggetto JSON:
+{"nome": nome del vino (denominazione e/o nome di fantasia, es. "Barolo Cannubi"),
+ "cantina": produttore,
+ "annata": anno a 4 cifre o null,
+ "tipo": uno tra "rosso","bianco","rosato","bollicine","orange","dolce" o null,
+ "metodo": per le bollicine "Metodo classico" o "Metodo charmat" se deducibile, altrimenti null,
+ "vitigno": vitigno/i se scritti o certi per la denominazione, altrimenti null,
+ "regione": regione (in italiano per l'Italia), "paese": nazione in italiano,
+ "localita": comune della cantina se scritto in etichetta, altrimenti null}
+Metti null quando non sei sicuro. Non inventare.`;
+
+const SYSTEM_STASERA = `Sei il sommelier di casa di una coppia. Ricevi il menu della serata e l'elenco dei LORO vini (JSON).
+Scegli da 1 a 3 vini SOLO tra quelli dell'elenco, i più adatti al menu: considera tipo, corpo, sentori, abbinamenti già segnati da loro e i loro voti (più alti = preferiti).
+Preferisci i vini con bottiglie in cantina (bottiglie > 0) e quelli da bere presto (bere_entro vicino).
+Rispondi SOLO con JSON: {"scelte":[{"id":"...","perche":"motivo breve in italiano, max 20 parole"}],"nota":"consiglio di servizio breve o null"}`;
+/* ═══ FINE NUOVO ═══ */
 
 async function askClaude(user: string, withSearch: boolean) {
   const body: Record<string, unknown> = {
@@ -82,6 +118,30 @@ Deno.serve(async (req) => {
 
     const b = await req.json();
     const clip = (x: unknown, n: number) => String(x ?? "").trim().slice(0, n);
+
+    /* NUOVO · lettura etichetta */
+    if (b.action === "etichetta") {
+      const data = String(b.image ?? "");
+      const mt = String(b.media_type ?? "image/jpeg");
+      if (!data || data.length > 2_800_000 || !["image/jpeg", "image/png", "image/webp"].includes(mt)) return json({ error: "Immagine non valida" }, 400);
+      const text = await callClaude(SYSTEM_ETICHETTA, [
+        { type: "image", source: { type: "base64", media_type: mt, data } },
+        { type: "text", text: "Leggi questa etichetta." },
+      ], 500);
+      const out = parseJson(text);
+      return out ? json(out) : json({ error: "Etichetta non leggibile" }, 422);
+    }
+
+    /* NUOVO · cosa apriamo stasera */
+    if (b.action === "stasera") {
+      const menu = clip(b.menu, 400);
+      const lista = Array.isArray(b.vini) ? b.vini.slice(0, 150) : [];
+      if (!menu || !lista.length) return json({ error: "Serve il menu e almeno un vino" }, 400);
+      const text = await callClaude(SYSTEM_STASERA, `Menu: ${menu}\n\nI nostri vini:\n${JSON.stringify(lista).slice(0, 40000)}`, 700);
+      const out = parseJson(text);
+      return out ? json(out) : json({ error: "Risposta non valida" }, 502);
+    }
+
     const nome = clip(b.nome, 120), cantina = clip(b.cantina, 120), annata = clip(b.annata, 4);
     const regione = clip(b.regione, 60), paese = clip(b.paese, 60);
     if (!nome && !cantina) return json({ error: "Serve almeno nome o cantina" }, 400);
