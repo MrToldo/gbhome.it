@@ -720,13 +720,6 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         <div class="vtot" id="votoTot"></div>
       </div>
 
-      <div class="field">
-        <span class="flabel">Lo ricomprerei?</span>
-        <div class="yn" id="yn">
-          <button type="button" class="yes" data-v="1">Sì</button>
-          <button type="button" class="no" data-v="0">No</button>
-        </div>
-      </div>
 
       <div class="row2 field">
         <div>
@@ -1371,13 +1364,12 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     const n = vini.filter(v => v._mine).length;   // NUOVO · vini che ho recensito io
     const votati = vini.filter(v => v.voto != null);
     const media = votati.length ? (votati.reduce((a, v) => a + v.voto, 0) / votati.length) : null;
-    const rc = vini.filter(v => v.ricomprerei != null);
-    const perc = rc.length ? Math.round(rc.filter(v => v.ricomprerei).length / rc.length * 100) : null;
+    const top8 = vini.filter(v => v.voto >= 8).length;   // NUOVO · al posto di "Li ricomprerei"
     const top = votati.length ? votati.reduce((a, v) => v.voto > a.voto ? v : a) : null;
     $('#stats').innerHTML = `
       <div class="stat"><div class="stat-v">${n}</div><div class="stat-l">Vini assaggiati</div></div>
       <div class="stat accent"><div class="stat-v">${media != null ? media.toFixed(1).replace('.', ',') : '–'}<small>/10</small></div><div class="stat-l">Voto medio</div></div>
-      <div class="stat"><div class="stat-v">${perc != null ? perc + '%' : '–'}</div><div class="stat-l">Li ricomprerei</div></div>
+      <div class="stat"><div class="stat-v">${top8}</div><div class="stat-l">Con voto 8+</div></div>
       <div class="stat"><div class="stat-v" style="font-size:16px;line-height:1.3;padding-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${top ? esc(top.nome) : '–'}</div><div class="stat-l">Il migliore${top ? ' · ' + top.voto : ''}</div></div>`;
   }
 
@@ -1497,7 +1489,6 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         <button type="button" class="wcard" data-id="${v.id}" style="animation-delay:${Math.min(i * 35, 400)}ms">
           <div class="ph">
             ${v.foto_url ? `<img src="${esc(v.foto_url)}" alt="" loading="lazy">` : `<div class="noimg">${bottleSvg(t ? t.c : '#5f6b83')}</div>`}
-            ${v.ricomprerei ? `<svg class="heart" viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.2 3 4.5 6.6 4.5c2.1 0 3.9 1.3 5.4 3.2 1.5-1.9 3.3-3.2 5.4-3.2 3.6 0 5.7 3.7 4.2 7.2C19.5 16.4 12 21 12 21z"/></svg>` : ''}
             ${v.in_cantina ? `<span class="cellar-badge" title="In cantina"><svg viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21V12h6v9"/></svg></span>` : ''}
             <span class="vbadge ${vcls}">${v.voto ?? '–'}</span>
             ${v._others.map(r => `<span class="vbadge2" title="Voto di ${esc(nameOf(r))}">${esc(nameOf(r).charAt(0).toUpperCase())} <b>${r.voto ?? '–'}</b></span>`).join('')}
@@ -1626,7 +1617,6 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     document.querySelectorAll('#nasoChips .chip, #boccaChips .chip').forEach(b => b.classList.toggle('on', F.tags.has(b.dataset.v)));
     document.querySelectorAll('#abbChips .chip').forEach(b => b.classList.toggle('on', F.abb.has(b.dataset.v)));   // NUOVO
     document.querySelectorAll('#occChips .chip').forEach(b => b.classList.toggle('on', F.occ.has(b.dataset.v)));   // NUOVO
-    document.querySelectorAll('#yn button').forEach(b => b.classList.toggle('on', F.ricomprerei != null && (b.dataset.v === '1') === F.ricomprerei));
     document.querySelectorAll('#cantinaYn button').forEach(b => b.classList.toggle('on', F.inCantina != null && (b.dataset.v === '1') === F.inCantina));   // NUOVO
     $('#fTemp').placeholder = 'Es. ' + (TEMP_HINT[F.tipo] || '16-18°C');   // NUOVO · suggerimento in base al tipo
     const pp = $('#photoPick');
@@ -1658,7 +1648,6 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     const b = e.target.closest('.chip:not(.add)'); if (!b) return;   // NUOVO · esclude "+ Aggiungi"
     F.tags.has(b.dataset.v) ? F.tags.delete(b.dataset.v) : F.tags.add(b.dataset.v); paintForm();
   }));
-  $('#yn').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const v = b.dataset.v === '1'; F.ricomprerei = F.ricomprerei === v ? null : v; paintForm(); });
   $('#cantinaYn').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const v = b.dataset.v === '1'; F.inCantina = F.inCantina === v ? null : v; paintForm(); });   // NUOVO
   /* NUOVO · tre sorgenti foto (form e dettaglio) */
   document.addEventListener('click', e => {
@@ -1890,7 +1879,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         const isB = x => vociOf('bocca').some(y => sameText(x, y));   // NUOVO · tag divisi naso / bocca
         const naso = (r.tag || []).filter(x => !isB(x)), bocca = (r.tag || []).filter(isB);
         const grp = (lbl, arr) => arr.length ? `<div class="d-sub">${lbl}</div><div class="d-tags mini">${arr.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : '';
-        const meta = [fmtDate(r.data), r.luogo, (r.occasione || []).join(', ').toLowerCase() || null, r.formato, r.ricomprerei != null ? (r.ricomprerei ? 'Lo ricomprerebbe' : 'Non lo ricomprerebbe') : null].filter(Boolean).join(' · ');
+        const meta = [fmtDate(r.data), r.luogo, (r.occasione || []).join(', ').toLowerCase() || null, r.formato].filter(Boolean).join(' · ');
         return `<div class="rev${r === v._mine ? ' me' : ''}">
           <div class="rev-h"><b>${esc(nameOf(r))}${r === v._mine ? ' (tu)' : ''}</b><span class="rev-v">${r.voto ?? '–'}<small>/10</small></span></div>
           ${meta ? `<div class="rev-m">${esc(meta)}</div>` : ''}
