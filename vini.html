@@ -303,6 +303,16 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
 }
 .voti button.fill{background:rgba(255,107,138,.2);color:var(--wine-bright);}
 .voti button.on{background:linear-gradient(160deg,var(--wine-bright),var(--wine-deep));color:#fff;transform:scale(1.06);}
+/* NUOVO · voto diviso olfatto + bocca */
+.voti.v5{grid-template-columns:repeat(5,1fr);max-width:320px;margin-top:10px;}
+.vtot{display:flex;align-items:center;gap:14px;background:var(--bg-panel);border-radius:14px;padding:12px 14px;}
+.vtot .n{font-size:30px;font-weight:800;color:var(--wine);font-variant-numeric:tabular-nums;line-height:1;}
+.vtot .n small{font-size:13px;color:var(--text-lo);}
+.vtot .d{font-size:12.5px;color:var(--text-mid);font-weight:600;line-height:1.45;}
+.vbadge2.hid b{color:var(--text-lo);}
+.rev-blind{background:var(--bg-panel);border-radius:14px;padding:12px 14px;margin-bottom:10px;color:var(--text-mid);font-size:13.5px;font-weight:600;line-height:1.5;}
+.rev-blind b{color:var(--text-hi);}
+/* FINE NUOVO */
 
 /* chip di scelta */
 .chips{display:flex;flex-wrap:wrap;gap:7px;}
@@ -624,11 +634,15 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       <div class="field">
         <span class="flabel">Sentori al naso</span>
         <div class="chips" id="nasoChips"></div>
+        <div class="sub-l" style="margin-top:14px">Voto olfatto (1-5)</div>   <!-- NUOVO -->
+        <div class="voti v5" id="votoNaso"></div>
       </div>
 
       <div class="field">
         <span class="flabel">Sentori in bocca</span>
         <div class="chips" id="boccaChips"></div>
+        <div class="sub-l" style="margin-top:14px">Voto bocca (1-5)</div>   <!-- NUOVO -->
+        <div class="voti v5" id="votoBocca"></div>
       </div>
 
       <div class="sec-h">Abbinamenti <small>con cosa ci sta bene</small></div>
@@ -645,8 +659,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       </div>
 
       <div class="field">
-        <span class="flabel">Il tuo voto</span>
-        <div class="voti" id="voti"></div>
+        <span class="flabel">Il tuo voto finale</span>   <!-- NUOVO · somma olfatto + bocca -->
+        <div class="vtot" id="votoTot"></div>
       </div>
 
       <div class="field">
@@ -871,7 +885,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
      Tabella "vini_recensioni": voto, sensazioni, note… di ciascun utente.
      Su ogni vino i campi della recensione (voto, tag, note…) sono quelli dell'utente collegato;
      _revs = tutte le recensioni, _mine = la mia, _others = quelle dell'altro, _media = voto medio. */
-  const REV_FIELDS = ['data', 'luogo', 'formato', 'voto', 'corpo', 'tag', 'ricomprerei', 'note', 'abbinamenti', 'occasione'];
+  const REV_FIELDS = ['data', 'luogo', 'formato', 'voto', 'voto_naso', 'voto_bocca', 'corpo', 'tag', 'ricomprerei', 'note', 'abbinamenti', 'occasione'];
   const myName = () => currentUser?.user_metadata?.nome || (currentUser?.email || '').split('@')[0];
   const nameOf = r => r.user_id === currentUser?.id ? myName() : (r.autore || 'Altro');
   function mergeVini(rows, revs){
@@ -881,14 +895,19 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       const others = all.filter(r => r !== mine);
       const last = [...all].sort((a, b) => (b.data || '').localeCompare(a.data || ''))[0] || null;
       const src = mine || {};
-      const votes = all.map(r => r.voto).filter(x => x != null);
+      /* NUOVO · RECENSIONE ALLA CIECA: le recensioni dell'altro si vedono solo dopo aver salvato il proprio voto */
+      const reveal = !!(mine && mine.voto != null);
+      const visible = reveal ? all : (mine ? [mine] : []);
+      const votes = visible.map(r => r.voto).filter(x => x != null);
       return { ...w,
         voto: src.voto ?? null, corpo: src.corpo ?? null, tag: src.tag || [], ricomprerei: src.ricomprerei ?? null,
         note: src.note ?? null, formato: src.formato ?? null,
         abbinamenti: src.abbinamenti || [], occasione: src.occasione || [],   // NUOVO
-        _abb: [...new Set(all.flatMap(r => r.abbinamenti || []))],            // NUOVO · abbinamenti di entrambi
+        _abb: [...new Set(visible.flatMap(r => r.abbinamenti || []))],        // NUOVO · abbinamenti visibili
+        _abbAll: [...new Set(all.flatMap(r => r.abbinamenti || []))],         // NUOVO · per il filtro "Con cosa?" (non mostra voti)
+        _all: all, _hidden: reveal ? [] : others,                              // NUOVO · alla cieca
         data: (mine || last)?.data || (w.created_at || '').slice(0, 10), luogo: (mine || last)?.luogo ?? null,
-        _revs: all, _mine: mine, _others: others,
+        _revs: visible, _mine: mine, _others: reveal ? others : [],   // NUOVO · solo le visibili
         _media: votes.length ? votes.reduce((a, b) => a + b, 0) / votes.length : null };
     }).sort((a, b) => (b.data || '').localeCompare(a.data || '') || (b.created_at || '').localeCompare(a.created_at || ''));
   }
@@ -949,9 +968,11 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       .map(v => ({ v, s: matchScore(nome, cantina, annata, v) }))
       .filter(x => x.s >= min).sort((a, b) => b.s - a.s).slice(0, 3).map(x => x.v);
   }
-  const votiTxt = v => v._revs.length ? v._revs.map(r => nameOf(r) + ' ' + (r.voto ?? '–')).join(' · ') : 'nessuna recensione';
+  const votiTxt = v => v._all.length   // NUOVO · voti visibili + chi ha recensito "alla cieca"
+    ? [...v._revs.map(r => nameOf(r) + ' ' + (r.voto ?? '–')), ...v._hidden.map(r => nameOf(r) + ' ?')].join(' · ') : 'nessuna recensione';
+  const chiTxt = v => v._all.length ? 'già recensito da ' + v._all.map(nameOf).join(' e ') : 'nessuna recensione';   // NUOVO · nel modulo: nessun voto
   const dupItem = (v, label, act) => `<div class="dup-it"><div class="tx"><div class="n">${esc(v.nome)}</div>
-      <div class="m">${esc([v.cantina, v.annata, votiTxt(v)].filter(Boolean).join(' · '))}</div></div>
+      <div class="m">${esc([v.cantina, v.annata, act === 'pick' ? chiTxt(v) : votiTxt(v)].filter(Boolean).join(' · '))}</div></div>
       <button type="button" data-${act}="${v.id}">${label}</button></div>`;
 
   /* suggerimenti mentre si scrive un vino nuovo */
@@ -982,13 +1003,21 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
      Si sposta sempre il vino che contiene solo recensioni mie (le regole del database
      non permettono di spostare la recensione dell'altro). */
   async function mergeWines(a, b){
-    const movable = w => w._revs.every(r => r.user_id === currentUser.id);
+    /* NUOVO · se nel database c'è la funzione vini_unisci, unisce tutto (anche le recensioni dell'altro) */
+    {
+      const [src, dst] = (a.created_at || '') < (b.created_at || '') ? [b, a] : [a, b];   // resta il più vecchio
+      if (!confirm(`Unire "${src.nome}" in "${dst.nome}"?\nLe recensioni finiscono su un solo vino e il doppione viene eliminato.`)) return null;
+      const { error } = await sb.rpc('vini_unisci', { src: src.id, dst: dst.id });
+      if (!error){ if (dst.foto_url && src.foto_path) removePhoto(src.foto_path); return dst.id; }
+      if (!(error.code === 'PGRST202' || /could not find the function/i.test(error.message || ''))) throw error;
+    }
+    /* senza la funzione: si sposta solo il vino che contiene recensioni mie */
+    const movable = w => w._all.every(r => r.user_id === currentUser.id);
     let src, dst;
     if (movable(a) && movable(b)) [src, dst] = (a.created_at || '') < (b.created_at || '') ? [b, a] : [a, b];
     else if (movable(a)) [src, dst] = [a, b];
     else if (movable(b)) [src, dst] = [b, a];
     else { toast('Entrambi i vini hanno recensioni dell\'altro: chiedi di unirli dal suo account', 4500); return null; }
-    if (!confirm(`Unire "${src.nome}" in "${dst.nome}"?\nLe recensioni finiscono su un solo vino e il doppione viene eliminato.`)) return null;
     if (src._mine){
       if (!dst._mine){
         const { error } = await sb.from(TABLE_REV).update({ vino_id: dst.id }).eq('id', src._mine.id);
@@ -1126,7 +1155,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   $('#q').addEventListener('input', renderGrid);
   /* NUOVO · "oggi grigliata, che vino prendiamo?" */
   function renderAbbFilters(){
-    const used = [...new Set(vini.flatMap(v => v._abb))].sort((a, b) => a.localeCompare(b, 'it'));
+    const used = [...new Set(vini.flatMap(v => v._abbAll))].sort((a, b) => a.localeCompare(b, 'it'));   // NUOVO · _abbAll
     if (abbFiltro && !used.includes(abbFiltro)) abbFiltro = null;
     $('#abbFilters').style.display = used.length ? '' : 'none';
     $('#abbFilters').innerHTML = '<span class="lbl">Con cosa?</span>' + used.map(x =>
@@ -1148,7 +1177,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       if (filtro === 'nofoto' && v.foto_url) return false;
       if (filtro === 'todo' && v.nome !== 'Da completare') return false;
       if (TIPI.some(t => t.k === filtro) && v.tipo !== filtro) return false;
-      if (abbFiltro && !v._abb.includes(abbFiltro)) return false;   // NUOVO
+      if (abbFiltro && !v._abbAll.includes(abbFiltro)) return false;   // NUOVO
       if (q){
         const hay = [v.nome, v.cantina, v.vitigno, v.regione, v.annata, ...v._revs.flatMap(r => [r.luogo, r.note, r.autore, ...(r.tag || []), ...(r.abbinamenti || []), ...(r.occasione || [])])].join(' ').toLowerCase();   // NUOVO · cerca in tutte le recensioni
         if (!hay.includes(q)) return false;
@@ -1189,6 +1218,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
             ${v.in_cantina ? `<span class="cellar-badge" title="In cantina"><svg viewBox="0 0 24 24"><path d="M3 9l9-6 9 6v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21V12h6v9"/></svg></span>` : ''}
             <span class="vbadge ${vcls}">${v.voto ?? '–'}</span>
             ${v._others.map(r => `<span class="vbadge2" title="Voto di ${esc(nameOf(r))}">${esc(nameOf(r).charAt(0).toUpperCase())} <b>${r.voto ?? '–'}</b></span>`).join('')}
+            ${v._hidden.map(r => `<span class="vbadge2 hid" title="${esc(nameOf(r))} l'ha recensito: vedrai il voto dopo aver dato il tuo">${esc(nameOf(r).charAt(0).toUpperCase())} <b>?</b></span>`).join('')}   <!-- NUOVO · alla cieca -->
             ${t ? `<span class="tbadge"><i style="background:${t.c}"></i>${t.l}</span>` : ''}
           </div>
           <div class="winfo">
@@ -1227,7 +1257,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
 
   /* ══ FORM: costruzione controlli ══ */
   (function buildForm(){
-    $('#voti').innerHTML = Array.from({ length:10 }, (_, i) => `<button type="button" data-v="${i + 1}">${i + 1}</button>`).join('');
+    const five = Array.from({ length:5 }, (_, i) => `<button type="button" data-v="${i + 1}">${i + 1}</button>`).join('');   // NUOVO · voto diviso
+    $('#votoNaso').innerHTML = five; $('#votoBocca').innerHTML = five;
     $('#tipoChips').innerHTML = TIPI.map(t => `<button type="button" class="chip" data-v="${t.k}"><span class="dot" style="background:${t.c}"></span>${t.l}</button>`).join('');
     const simple = (arr) => arr.map(x => `<button type="button" class="chip" data-v="${esc(x)}">${esc(x)}</button>`).join('');
     $('#corpoChips').innerHTML   = simple(CORPO);
@@ -1292,11 +1323,15 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   /* FINE NUOVO */
 
   function paintForm(){
-    document.querySelectorAll('#voti button').forEach(b => {
+    [['#votoNaso', F.vn], ['#votoBocca', F.vb]].forEach(([sel, val]) => document.querySelectorAll(sel + ' button').forEach(b => {   // NUOVO
       const v = +b.dataset.v;
-      b.classList.toggle('on', v === F.voto);
-      b.classList.toggle('fill', F.voto != null && v < F.voto);
-    });
+      b.classList.toggle('on', v === val);
+      b.classList.toggle('fill', val != null && v < val);
+    }));
+    const tot = votoFinale();
+    $('#votoTot').innerHTML = tot != null
+      ? `<div class="n">${tot}<small>/10</small></div><div class="d">${F.vn != null && F.vb != null ? `Olfatto ${F.vn} + bocca ${F.vb}` : 'Voto dato prima della divisione olfatto/bocca.<br>Assegna i due voti per aggiornarlo.'}</div>`
+      : `<div class="n">–<small>/10</small></div><div class="d">${F.vn != null || F.vb != null ? `Manca il voto ${F.vn == null ? 'olfatto' : 'bocca'}` : 'Dai un voto all\'olfatto e alla bocca:<br>il finale è la somma.'}</div>`;
     const single = (sel, val) => document.querySelectorAll(sel + ' .chip').forEach(b => b.classList.toggle('on', b.dataset.v === val));
     single('#tipoChips', F.tipo);
     single('#corpoChips', F.corpo);
@@ -1316,7 +1351,14 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     if (src){ const im = document.createElement('img'); im.src = src; im.alt = ''; pp.prepend(im); }
   }
 
-  $('#voti').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const v = +b.dataset.v; F.voto = F.voto === v ? null : v; paintForm(); });
+  /* NUOVO · voto diviso: olfatto 1-5 + bocca 1-5 = voto finale 2-10 */
+  $('#votoNaso').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const v = +b.dataset.v; F.vn = F.vn === v ? null : v; paintForm(); });
+  $('#votoBocca').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const v = +b.dataset.v; F.vb = F.vb === v ? null : v; paintForm(); });
+  function votoFinale(){
+    if (F.vn != null && F.vb != null) return F.vn + F.vb;
+    if (F.vn == null && F.vb == null) return F.voto ?? null;   // vecchie recensioni con voto unico
+    return null;
+  }
   const bindSingle = (sel, key) => $(sel).addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; F[key] = F[key] === b.dataset.v ? null : b.dataset.v; paintForm(); });
   $('#tipoChips').addEventListener('click', e => {   // NUOVO · gestito a parte per azzerare il metodo se non è più bollicine
     const b = e.target.closest('.chip'); if (!b) return;
@@ -1354,7 +1396,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     if (F?.preview) URL.revokeObjectURL(F.preview);
     const last = vini[0];
     const sameDay = last && last.data === todayISO();
-    F = { id:null, blob:null, preview:null, web:null, fotoAuto:false, fotoUrl:null, fotoPath:null, voto:null, tipo:null, corpo:null, formato:null, metodo:null, tags:new Set(), ricomprerei:null, inCantina:null, abb:new Set(), occ:new Set() };   // NUOVO · abb/occ
+    F = { id:null, blob:null, preview:null, web:null, fotoAuto:false, fotoUrl:null, fotoPath:null, voto:null, tipo:null, corpo:null, formato:null, metodo:null, tags:new Set(), ricomprerei:null, inCantina:null, abb:new Set(), occ:new Set(), vn:null, vb:null };   // NUOVO · vn/vb   // NUOVO · abb/occ
     Object.values(INPUTS).forEach(s => $(s).value = '');
     $('#fData').value = todayISO();
     if (sameDay && last.luogo) $('#fLuogo').value = last.luogo;   // stessa serata, stesso posto
@@ -1371,6 +1413,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     F.tags = new Set(v.tag || []); F.ricomprerei = v.ricomprerei;
     F.inCantina = v.in_cantina;   // NUOVO
     F.abb = new Set(v._mine?.abbinamenti || []); F.occ = new Set(v._mine?.occasione || []);   // NUOVO
+    F.vn = v._mine?.voto_naso ?? null; F.vb = v._mine?.voto_bocca ?? null;   // NUOVO
     $('#fNome').value = v.nome === 'Da completare' ? '' : (v.nome || '');
     $('#fCantina').value = v.cantina || '';
     $('#fAnnata').value = v.annata || '';
@@ -1405,7 +1448,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       metodo: F.tipo === 'bollicine' ? F.metodo : null,   // NUOVO · ha senso solo per le bollicine
       tag: [...F.tags],
       abbinamenti: [...F.abb], occasione: [...F.occ],   // NUOVO
-      voto: F.voto, ricomprerei: F.ricomprerei,
+      voto: votoFinale(), voto_naso: F.vn, voto_bocca: F.vb, ricomprerei: F.ricomprerei,   // NUOVO · voto = olfatto + bocca
       in_cantina: F.inCantina,   // NUOVO
       luogo: val('#fLuogo'), note: val('#fNote'),
       vitigno: val('#fVitigno'), regione: val('#fRegione'),
@@ -1439,6 +1482,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   /* ══ SALVATAGGIO ══ */
   $('#btnSave').addEventListener('click', save);
   async function save(){
+    if ((F.vn == null) !== (F.vb == null)){ toast(`Manca il voto ${F.vn == null ? 'olfatto' : 'bocca'}`); return; }   // NUOVO
     /* NUOVO · prima di creare un vino nuovo, controlla che non esista già */
     let joinCur = null;
     if (!F.id){
@@ -1551,6 +1595,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         ? `<div class="dup-box dup-det"><div class="dh">Forse è lo stesso vino registrato due volte</div>${d.map(x => dupItem(x, 'Unisci', 'merge')).join('')}</div>` : ''; })()}
       <div class="revs-h">Recensioni</div>
       ${!v._mine ? `<div class="rev-empty">Non l'hai ancora recensito: tocca <b>Modifica</b> per aggiungere voto e sensazioni.</div>` : ''}
+      ${v._hidden.length ? `<div class="rev-blind"><b>${esc(v._hidden.map(nameOf).join(' e '))}</b> l'ha già recensito. Per non farti influenzare vedrai voto e sentori dopo aver salvato il tuo voto.</div>` : ''}   <!-- NUOVO -->
       ${[v._mine, ...v._others].filter(Boolean).map(r => {
         const isB = x => vociOf('bocca').some(y => sameText(x, y));   // NUOVO · tag divisi naso / bocca
         const naso = (r.tag || []).filter(x => !isB(x)), bocca = (r.tag || []).filter(isB);
@@ -1559,6 +1604,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         return `<div class="rev${r === v._mine ? ' me' : ''}">
           <div class="rev-h"><b>${esc(nameOf(r))}${r === v._mine ? ' (tu)' : ''}</b><span class="rev-v">${r.voto ?? '–'}<small>/10</small></span></div>
           ${meta ? `<div class="rev-m">${esc(meta)}</div>` : ''}
+          ${r.voto_naso != null ? `<div class="rev-m">Olfatto ${r.voto_naso}/5 · Bocca ${r.voto_bocca ?? '–'}/5</div>` : ''}   <!-- NUOVO -->
           ${grp('Corpo', r.corpo ? [r.corpo] : [])}${grp('Al naso', naso)}${grp('In bocca', bocca)}${grp('Abbinamenti', r.abbinamenti || [])}
           ${r.note ? `<div class="d-note">${esc(r.note)}</div>` : ''}
         </div>`;

@@ -63,3 +63,8 @@ create policy "voci_inserisci" on public.vini_voci for insert to authenticated w
 create policy "voci_elimina"   on public.vini_voci for delete to authenticated using (true);
 create policy "solo_2fa" on public.vini_voci as restrictive for all to authenticated
   using ((select auth.jwt() ->> 'aal') = 'aal2') with check ((select auth.jwt() ->> 'aal') = 'aal2');
+
+-- ═══ 2026-10-05 · voto diviso olfatto + bocca (GIÀ APPLICATO) ═══
+alter table public.vini_recensioni
+  add column voto_naso  smallint check (voto_naso  between 1 and 5),
+  add column voto_bocca smallint check (voto_bocca between 1 and 5);
