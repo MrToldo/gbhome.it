@@ -659,14 +659,14 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
           <datalist id="regioniList"></datalist>
         </div>
       </div>
+      <!-- NUOVO · compilazione con l'IA (Claude + ricerca web, funzione vini-ai) -->
+      <button type="button" class="btn-ai" id="btnAiFill" style="margin:-6px 0 18px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>
+        Compila con l'IA: località, regione, vitigno
+      </button>
 
       <details class="more" id="moreBox">
         <summary><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>Vitigno e paese</summary>
-        <!-- NUOVO · autocompilazione Vitigno/Regione via Brave Search (nessuna IA a pagamento) -->
-        <button type="button" class="btn-ai" id="btnAiFill">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-          Cerca vitigno e regione online
-        </button>
         <div class="row2 field">
           <div>
             <label class="flabel" for="fVitigno">Vitigno</label>
@@ -804,6 +804,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   const BUCKET = 'vini-photos';
   const QUEUE_KEY = 'gb_vini_queue';
   const FN_FOTO   = 'vini-foto';   // NUOVO · Edge Function ricerca immagini
+  const FN_AI     = 'vini-ai';     // NUOVO · Claude + ricerca web: località, regione, paese, vitigno
   const FN_INFO   = 'vini-info';   // NUOVO · Edge Function Brave Search per vitigno/regione (nessuna IA a pagamento)
 
   /* ══ DIZIONARI ══ */
@@ -1138,7 +1139,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
 
   /* posizioni mancanti: una richiesta al secondo (regole di OpenStreetMap), poi si salvano sul vino */
   /* NUOVO · località ricavata dal nome della cantina (solo se OpenStreetMap la conosce come cantina/vigneto) */
-  const TRIED_KEY = 'gb_vini_cantina_cercata';
+  const TRIED_KEY = 'gb_vini_cantina_cercata_ia';   // NUOVO · nuova chiave: i vini già provati solo con OpenStreetMap vengono riprovati con l'IA
   const readTried = () => { try { return JSON.parse(localStorage.getItem(TRIED_KEY) || '{}'); } catch(e){ return {}; } };
   const markTried = (v) => { const t = readTried(); t[v.id] = normTxt(v.cantina); try { localStorage.setItem(TRIED_KEY, JSON.stringify(t)); } catch(e){} };
   const cleanCantina = c => String(c || '').replace(/^\s*(cantina|cantine|azienda agricola|az\.?\s*agr\.?|azienda vinicola|vini|winery)\s+/i, '').trim();
@@ -1162,22 +1163,36 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     return null;
   }
 
+  /* NUOVO · chiede all'IA dove si trova la cantina, poi trova le coordinate del comune */
+  async function askAI(v){
+    try {
+      const d = await callFn(FN_AI, { nome: v.nome === 'Da completare' ? '' : v.nome, cantina: v.cantina, annata: v.annata, regione: v.regione, paese: v.paese });
+      if (!d || !d.localita) return null;
+      const q = [d.localita, d.regione || v.regione, d.paese || v.paese].filter(Boolean).join(', ');
+      const ll = await nominatim(q); await sleep(1100);
+      if (!ll) return null;
+      return { localita: d.localita, regione: d.regione || null, paese: d.paese || null, vitigno: d.vitigno || null, lat: ll[0], lng: ll[1] };
+    } catch(e){ console.warn('vini-ai', e); return null; }
+  }
+
   async function geocodeMissing(){
     if (geoBusy) return;
     const tried = readTried();
-    const fromCantina = vini.filter(v => !v.localita && v.cantina && tried[v.id] !== normTxt(v.cantina));   // NUOVO
+    const fromCantina = vini.filter(v => !v.localita && v.cantina && tried[v.id] !== normTxt(v.cantina));   // NUOVO · prima IA, poi OpenStreetMap
     const todo = vini.filter(v => v.localita && (v.lat == null || v.lng == null) && !v._geoFail);
     if (!todo.length && !fromCantina.length) return;
     geoBusy = true; renderMapNote();
     let ok = 0;
     for (const v of fromCantina){   // NUOVO
       try {
-        const f = await findWinery(v);
+        let f = await askAI(v);   // NUOVO · IA
+        if (!f) f = await findWinery(v);
         markTried(v);
         if (f){
           const patch = { localita: f.localita, lat: f.lat, lng: f.lng };
           if (!v.regione && f.regione) patch.regione = f.regione;
           if (!v.paese && f.paese && normTxt(f.paese) !== 'italia') patch.paese = f.paese;
+          if (!v.vitigno && f.vitigno) patch.vitigno = f.vitigno;   // NUOVO
           const { error } = await sb.from(TABLE).update(patch).eq('id', v.id);
           if (!error){ Object.assign(v, patch); ok++; }
         }
@@ -1277,7 +1292,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     const emptyEl = $('#mapEmpty');
     emptyEl.hidden = pts.length > 0 || (geoBusy && mapMode === 'citta');
     if (!pts.length) emptyEl.innerHTML = mapMode === 'citta'
-      ? `<b>Nessun vino con la località</b>Apri un vino, tocca Modifica e scrivi la "Località cantina" (es. Barolo, Valdobbiadene). Se la cantina è su OpenStreetMap la trovo da solo.`
+      ? `<b>Nessun vino con la località</b>Apri un vino, tocca Modifica e scrivi la "Località cantina", oppure premi "Compila con l'IA".`
       : `<b>Nessun vino con la regione</b>Apri un vino, tocca Modifica e scrivi la "Regione".`;
     if (pts.length === 1) map.setView(pts[0], mapMode === 'citta' ? 9 : 7);
     else if (pts.length) map.fitBounds(pts, { padding: [36, 36], maxZoom: 9 });
@@ -1949,13 +1964,20 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     const btn = $('#btnAiFill');
     btn.disabled = true; btn.classList.add('loading');
     const origLabel = btn.innerHTML;
-    btn.innerHTML = btn.innerHTML.replace('Cerca vitigno e regione online', 'Cerco…');
+    btn.innerHTML = btn.innerHTML.replace("Compila con l'IA: località, regione, vitigno", "L'IA sta cercando…");   // NUOVO
     try {
-      const d = await callFn(FN_INFO, { nome, cantina, annata: $('#fAnnata').value.trim() });
+      /* NUOVO · prima l'IA (vini-ai), se non risponde la vecchia ricerca (vini-info) */
+      let d = null, viaIA = true;
+      try { d = await callFn(FN_AI, { nome, cantina, annata: $('#fAnnata').value.trim(), regione: $('#fRegione').value.trim(), paese: $('#fPaese').value.trim() }); }
+      catch(e){ console.warn('vini-ai', e); viaIA = false; d = await callFn(FN_INFO, { nome, cantina, annata: $('#fAnnata').value.trim() }); }
       let filled = 0;
-      if (d.vitigno && !$('#fVitigno').value.trim()){ $('#fVitigno').value = d.vitigno; filled++; }
-      if (d.regione && !$('#fRegione').value.trim()){ $('#fRegione').value = d.regione; filled++; }
-      toast(filled ? 'Campi compilati 🍇' : 'Nessuna informazione trovata, prova a inserirli a mano', 3200);
+      const put = (sel, val) => { if (val && !$(sel).value.trim()){ $(sel).value = val; filled++; } };
+      put('#fLocalita', d.localita);
+      put('#fRegione', d.regione);
+      if (d.paese && normTxt(d.paese) !== 'italia') put('#fPaese', d.paese);
+      put('#fVitigno', d.vitigno);
+      if (d.vitigno || d.paese) $('#moreBox').open = true;
+      toast(filled ? `Campi compilati 🍇${viaIA && d.certezza ? ' · certezza ' + d.certezza : ''}` : 'Nessuna informazione nuova trovata', 3600);
     } catch(e){
       console.error(e);
       toast('Errore nella ricerca: ' + (e.message || e), 3600);
