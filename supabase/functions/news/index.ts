@@ -40,36 +40,50 @@ function jwtClaims(token: string): Record<string, any> {
 }
 
 /* ══ Gemini ══ */
+/* NUOVO · riprova quando il modello è sovraccarico (503/429/500) e poi passa ai modelli di riserva */
+const GEMINI_RISERVE = ["gemini-2.5-flash-lite"];
+const attendi = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function gemini(prompt: string, maxTokens = 8192): Promise<any> {
   if (!GEMINI_KEY) throw new Error("Manca il secret GEMINI_API_KEY in Supabase");
   let ultimoErrore = "";
-  for (const modello of GEMINI_MODELLI) {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modello}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.2,
-          maxOutputTokens: maxTokens,
-          thinkingConfig: { thinkingBudget: 0 },
-        },
-      }),
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) {
+  for (const modello of [...GEMINI_MODELLI, ...GEMINI_RISERVE]) {
+    for (let tentativo = 0; tentativo < 3; tentativo++) {
+      const generationConfig: Record<string, unknown> = {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+        maxOutputTokens: maxTokens,
+      };
+      if (modello.startsWith("gemini-2.5")) generationConfig.thinkingConfig = { thinkingBudget: 0 };
+      let r: Response;
+      try {
+        r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modello}:generateContent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY },
+          body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig }),
+          signal: AbortSignal.timeout(60_000),
+        });
+      } catch (e) {
+        ultimoErrore = `Gemini non risponde (${(e as Error).message})`;
+        await attendi(1500 * (tentativo + 1));
+        continue;
+      }
+      const data = await r.json().catch(() => ({}));
+      if (r.ok) {
+        const testo = (data?.candidates?.[0]?.content?.parts ?? []).map((p: any) => p.text ?? "").join("");
+        const m = testo.match(/[\[{][\s\S]*[\]}]/);
+        if (!m) { ultimoErrore = "Risposta di Gemini non valida"; break; } // prova il modello successivo
+        try { return JSON.parse(m[0]); } catch { ultimoErrore = "Risposta di Gemini incompleta"; break; }
+      }
       ultimoErrore = data?.error?.message || `Gemini ${r.status}`;
-      if (r.status === 404 || r.status === 400) continue; // modello non disponibile → riserva
-      throw new Error(ultimoErrore);
+      if (r.status === 401 || r.status === 403) throw new Error(ultimoErrore); // chiave sbagliata: inutile riprovare
+      if (r.status === 400 || r.status === 404) break;                       // modello non disponibile → riserva
+      await attendi(2000 * (tentativo + 1));                                  // 429/500/503 → riprova
     }
-    const testo = (data?.candidates?.[0]?.content?.parts ?? []).map((p: any) => p.text ?? "").join("");
-    const m = testo.match(/[\[{][\s\S]*[\]}]/);
-    if (!m) throw new Error("Risposta di Gemini non valida");
-    return JSON.parse(m[0]);
   }
   throw new Error(ultimoErrore || "Gemini non disponibile");
 }
+/* ══ FINE NUOVO ══ */
 
 /* ══ RSS / Atom ══ */
 type Voce = { fonte: string; lingua: string; url: string; titolo: string; testo: string; data: number; immagine: string | null };
@@ -211,7 +225,10 @@ ${lotto.map((v, k) => `[${k}] (${v.fonte}, ${v.lingua}) ${v.titolo} — ${v.test
 
       let esito: any;
       try { esito = await gemini(prompt, 16000); }
-      catch (e) { throw new Error("Gemini: " + (e as Error).message); }
+      catch (e) {
+        if (i === 0) throw new Error("Gemini: " + (e as Error).message);
+        break; // NUOVO · i lotti già fatti restano salvati, il resto al prossimo giro
+      }
 
       const gruppi = new Map<string, any>((esito?.gruppi ?? []).map((g: any) => [String(g.gruppo), g]));
       const membri = new Map<string, Voce[]>();
