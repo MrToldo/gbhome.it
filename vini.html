@@ -97,6 +97,15 @@ input,select,textarea{font-family:var(--font-ui);}
 .view-tabs button{flex:1;border:none;background:none;color:var(--text-mid);font-weight:800;font-size:13.5px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .2s,color .2s;display:flex;align-items:center;justify-content:center;gap:7px;}
 .view-tabs button svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
 .view-tabs button.on{background:var(--wine-glow);color:var(--wine);}
+/* NUOVO · foto da catalogo: fondo bianco, bottiglia intera */
+.ph:has(img){background:#fff;}
+.ph img{object-fit:contain!important;padding:10px 8px 34px;}
+.d-photo:has(img){background:#fff;}
+.d-photo img{background:#fff!important;padding:14px;max-height:52vh;}
+.photo-pick img{object-fit:contain!important;background:#fff;}
+.webgrid button img{object-fit:contain!important;background:#fff;}
+.perl-row{margin-top:4px;}
+.perl-row .sub-l{margin:8px 0 7px;}
 /* NUOVO · mappa */
 .scope-tabs{margin-bottom:14px;}
 .scope-tabs button b{color:var(--wine);margin-left:4px;}
@@ -443,7 +452,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
 .photo-pick{cursor:default;margin-bottom:10px;text-align:center;padding:0 20px;}
 .photo-pick .hint{font-size:13px;font-weight:600;color:var(--text-lo);line-height:1.5;}
 .photo-pick .retake{cursor:pointer;border:none;}
-.photo-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;}
+.photo-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;}
 .photo-actions button{
   height:48px;border-radius:12px;border:1.5px solid transparent;background:var(--bg-panel);cursor:pointer;
   font-weight:800;font-size:13.5px;color:var(--text-hi);display:flex;align-items:center;justify-content:center;gap:7px;
@@ -602,6 +611,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
           <button type="button" data-src="cam"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.8"/></svg>Scatta</button>
           <button type="button" data-src="gal"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>Galleria</button>
           <button type="button" data-src="web"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Online</button>
+          <button type="button" data-src="ai"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/></svg>IA</button>   <!-- NUOVO · foto scelta dall'IA -->
         </div>
       </div>
 
@@ -704,6 +714,14 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         <div class="chips" id="boccaChips"></div>
         <div class="sub-l" style="margin-top:14px">Voto bocca (1-5)</div>   <!-- NUOVO -->
         <div class="voti v5" id="votoBocca"></div>
+      </div>
+
+      <!-- NUOVO · perlage: per bollicine o se in bocca è "Frizzante" -->
+      <div class="field" id="perlageField" hidden>
+        <span class="flabel">Perlage (le bollicine)</span>
+        <div class="perl-row"><div class="sub-l">Grana</div><div class="chips" id="pgGrana"></div></div>
+        <div class="perl-row"><div class="sub-l">Numero</div><div class="chips" id="pgNumero"></div></div>
+        <div class="perl-row"><div class="sub-l">Persistenza</div><div class="chips" id="pgPers"></div></div>
       </div>
 
       <div class="sec-h">Abbinamenti <small>con cosa ci sta bene</small></div>
@@ -818,6 +836,12 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   const NASO    = ['Fruttato','Frutti rossi','Frutti neri','Agrumi','Floreale','Erbaceo','Speziato','Legno/Tostato','Vaniglia','Minerale'];
   const BOCCA   = ['Secco','Morbido','Tannico','Fresco','Sapido','Caldo','Persistente','Amabile','Frizzante'];
   const FORMATO = ['Calice','Bottiglia'];
+  /* NUOVO · perlage (termini da degustazione) */
+  const PERLAGE = {
+    grana:       { sel:'#pgGrana',  col:'perlage_grana',       val:['Fine','Abbastanza fine','Grossolana'] },
+    numero:      { sel:'#pgNumero', col:'perlage_numero',      val:['Numeroso','Abbastanza numeroso','Scarso'] },
+    persistenza: { sel:'#pgPers',   col:'perlage_persistenza', val:['Persistente','Abbastanza persistente','Evanescente'] }
+  };
   /* NUOVO · abbinamenti e modo di assaggio (le voci aggiunte a mano stanno in vini_voci) */
   const ABBINAMENTI = ['Aperitivo','Antipasti','Salumi','Formaggi','Pesce','Crudi e sushi','Primi','Pizza','Carne bianca','Carne rossa','Grigliata','Selvaggina','Verdure','Dolci'];
   const OCCASIONE   = ['Solo calice','Mangiando','Aperitivo','Dopo cena','Degustazione','In compagnia'];
@@ -940,7 +964,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
      Tabella "vini_recensioni": voto, sensazioni, note… di ciascun utente.
      Su ogni vino i campi della recensione (voto, tag, note…) sono quelli dell'utente collegato;
      _revs = tutte le recensioni, _mine = la mia, _others = quelle dell'altro, _media = voto medio. */
-  const REV_FIELDS = ['data', 'luogo', 'formato', 'voto', 'voto_naso', 'voto_bocca', 'corpo', 'tag', 'ricomprerei', 'note', 'abbinamenti', 'occasione'];
+  const REV_FIELDS = ['data', 'luogo', 'formato', 'voto', 'voto_naso', 'voto_bocca', 'corpo', 'tag', 'ricomprerei', 'note', 'abbinamenti', 'occasione', 'perlage_grana', 'perlage_numero', 'perlage_persistenza'];
   const myName = () => currentUser?.user_metadata?.nome || (currentUser?.email || '').split('@')[0];
   const nameOf = r => r.user_id === currentUser?.id ? myName() : (r.autore || 'Altro');
   function mergeVini(rows, revs){
@@ -972,7 +996,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     return { w, r };
   }
   const hasReview = r => r.voto != null || (r.tag && r.tag.length) || !!r.corpo || r.ricomprerei != null || !!r.note || !!r.formato
-    || (r.abbinamenti && r.abbinamenti.length) || (r.occasione && r.occasione.length);   // NUOVO
+    || (r.abbinamenti && r.abbinamenti.length) || (r.occasione && r.occasione.length) || !!(r.perlage_grana || r.perlage_numero || r.perlage_persistenza);   // NUOVO
   async function saveReview(vinoId, r){
     if (!hasReview(r)){
       const { error } = await sb.from(TABLE_REV).delete().eq('vino_id', vinoId).eq('user_id', currentUser.id);
@@ -1570,6 +1594,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   (function buildForm(){
     const five = Array.from({ length:5 }, (_, i) => `<button type="button" data-v="${i + 1}">${i + 1}</button>`).join('');   // NUOVO · voto diviso
     $('#votoNaso').innerHTML = five; $('#votoBocca').innerHTML = five;
+    Object.values(PERLAGE).forEach(p => { $(p.sel).innerHTML = p.val.map(x => `<button type="button" class="chip" data-v="${esc(x)}">${esc(x)}</button>`).join(''); });   // NUOVO · perlage
     $('#tipoChips').innerHTML = TIPI.map(t => `<button type="button" class="chip" data-v="${t.k}"><span class="dot" style="background:${t.c}"></span>${t.l}</button>`).join('');
     const simple = (arr) => arr.map(x => `<button type="button" class="chip" data-v="${esc(x)}">${esc(x)}</button>`).join('');
     $('#corpoChips').innerHTML   = simple(CORPO);
@@ -1639,6 +1664,10 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       b.classList.toggle('on', v === val);
       b.classList.toggle('fill', val != null && v < val);
     }));
+    /* NUOVO · perlage visibile per bollicine o "Frizzante" */
+    const frizz = F.tipo === 'bollicine' || [...F.tags].some(t => sameText(t, 'Frizzante'));
+    $('#perlageField').hidden = !frizz;
+    Object.entries(PERLAGE).forEach(([k, p]) => document.querySelectorAll(p.sel + ' .chip').forEach(b => b.classList.toggle('on', b.dataset.v === F.pg[k])));
     const tot = votoFinale();
     $('#votoTot').innerHTML = tot != null
       ? `<div class="n">${tot}<small>/10</small></div><div class="d">${F.vn != null && F.vb != null ? `Olfatto ${F.vn} + bocca ${F.vb}` : 'Voto dato prima della divisione olfatto/bocca.<br>Assegna i due voti per aggiornarlo.'}</div>`
@@ -1664,6 +1693,10 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   /* NUOVO · voto diviso: olfatto 1-5 + bocca 1-5 = voto finale 2-10 */
   $('#votoNaso').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const v = +b.dataset.v; F.vn = F.vn === v ? null : v; paintForm(); });
   $('#votoBocca').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const v = +b.dataset.v; F.vb = F.vb === v ? null : v; paintForm(); });
+  Object.entries(PERLAGE).forEach(([k, p]) => $(p.sel).addEventListener('click', e => {   // NUOVO · perlage
+    const b = e.target.closest('.chip'); if (!b) return;
+    F.pg[k] = F.pg[k] === b.dataset.v ? null : b.dataset.v; paintForm();
+  }));
   function votoFinale(){
     if (F.vn != null && F.vb != null) return F.vn + F.vb;
     if (F.vn == null && F.vb == null) return F.voto ?? null;   // vecchie recensioni con voto unico
@@ -1691,6 +1724,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     if (b.dataset.src === 'cam') openCamera(target);
     if (b.dataset.src === 'gal'){ camTarget = target; $('#galInput').value = ''; $('#galInput').click(); }
     if (b.dataset.src === 'web') openWeb(target);
+    if (b.dataset.src === 'ai') aiPhoto(target);   // NUOVO
   });
   $('#photoClear').addEventListener('click', e => {
     e.stopPropagation();
@@ -1705,7 +1739,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     if (F?.preview) URL.revokeObjectURL(F.preview);
     const last = vini[0];
     const sameDay = last && last.data === todayISO();
-    F = { id:null, blob:null, preview:null, web:null, fotoAuto:false, fotoUrl:null, fotoPath:null, voto:null, tipo:null, corpo:null, formato:null, metodo:null, tags:new Set(), ricomprerei:null, inCantina:null, abb:new Set(), occ:new Set(), vn:null, vb:null };   // NUOVO · vn/vb   // NUOVO · abb/occ
+    F = { id:null, blob:null, preview:null, web:null, fotoAuto:false, fotoUrl:null, fotoPath:null, voto:null, tipo:null, corpo:null, formato:null, metodo:null, tags:new Set(), ricomprerei:null, inCantina:null, abb:new Set(), occ:new Set(), vn:null, vb:null, pg:{ grana:null, numero:null, persistenza:null } };   // NUOVO · vn/vb, perlage   // NUOVO · abb/occ
     Object.values(INPUTS).forEach(s => $(s).value = '');
     $('#fData').value = todayISO();
     if (sameDay && last.luogo) $('#fLuogo').value = last.luogo;   // stessa serata, stesso posto
@@ -1723,6 +1757,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
     F.inCantina = v.in_cantina;   // NUOVO
     F.abb = new Set(v._mine?.abbinamenti || []); F.occ = new Set(v._mine?.occasione || []);   // NUOVO
     F.vn = v._mine?.voto_naso ?? null; F.vb = v._mine?.voto_bocca ?? null;   // NUOVO
+    F.pg = { grana: v._mine?.perlage_grana || null, numero: v._mine?.perlage_numero || null, persistenza: v._mine?.perlage_persistenza || null };   // NUOVO
     $('#fNome').value = v.nome === 'Da completare' ? '' : (v.nome || '');
     $('#fCantina').value = v.cantina || '';
     $('#fAnnata').value = v.annata || '';
@@ -1758,6 +1793,8 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
       metodo: F.tipo === 'bollicine' ? F.metodo : null,   // NUOVO · ha senso solo per le bollicine
       tag: [...F.tags],
       abbinamenti: [...F.abb], occasione: [...F.occ],   // NUOVO
+      ...(() => { const on = F.tipo === 'bollicine' || [...F.tags].some(t => sameText(t, 'Frizzante'));   // NUOVO · perlage
+        return { perlage_grana: on ? F.pg.grana : null, perlage_numero: on ? F.pg.numero : null, perlage_persistenza: on ? F.pg.persistenza : null }; })(),
       voto: votoFinale(), voto_naso: F.vn, voto_bocca: F.vb, ricomprerei: F.ricomprerei,   // NUOVO · voto = olfatto + bocca
       in_cantina: F.inCantina,   // NUOVO
       luogo: val('#fLuogo'), note: val('#fNote'),
@@ -1888,6 +1925,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
         <button type="button" data-src="cam"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.8"/></svg>Scatta</button>
         <button type="button" data-src="gal"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>Galleria</button>
         <button type="button" data-src="web"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Online</button>
+        <button type="button" data-src="ai"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/></svg>IA</button>
       </div>
       <div class="d-top">
         <div class="t">
@@ -1920,7 +1958,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
           <div class="rev-h"><b>${esc(nameOf(r))}${r === v._mine ? ' (tu)' : ''}</b><span class="rev-v">${r.voto ?? '–'}<small>/10</small></span></div>
           ${meta ? `<div class="rev-m">${esc(meta)}</div>` : ''}
           ${r.voto_naso != null ? `<div class="rev-m">Olfatto ${r.voto_naso}/5 · Bocca ${r.voto_bocca ?? '–'}/5</div>` : ''}   <!-- NUOVO -->
-          ${grp('Corpo', r.corpo ? [r.corpo] : [])}${grp('Al naso', naso)}${grp('In bocca', bocca)}${grp('Abbinamenti', r.abbinamenti || [])}
+          ${grp('Corpo', r.corpo ? [r.corpo] : [])}${grp('Al naso', naso)}${grp('In bocca', bocca)}${grp('Perlage', [r.perlage_grana, r.perlage_numero, r.perlage_persistenza].filter(Boolean).map(x => x.toLowerCase()))}${grp('Abbinamenti', r.abbinamenti || [])}
           ${r.note ? `<div class="d-note">${esc(r.note)}</div>` : ''}
         </div>`;
       }).join('')}`;
@@ -2014,7 +2052,7 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   function queryFor(v){
     const nome = v.nome && v.nome !== 'Da completare' ? v.nome : '';
     if (!nome && !v.cantina) return '';
-    return [v.cantina, nome, v.annata].filter(Boolean).join(' ') + ' vino bottiglia';
+    return [v.cantina, nome, v.annata].filter(Boolean).join(' ') + ' bottiglia vino sfondo bianco';   // NUOVO · foto da catalogo
   }
   function bestPick(results){
     const top = results.slice(0, 8);
@@ -2024,11 +2062,46 @@ textarea.in{resize:vertical;min-height:76px;line-height:1.5;}
   /* foto automatica: coda sequenziale */
   const autoQueue = [];
   let autoRunning = false;
+  /* NUOVO · foto scelta dall'IA: undefined = IA non disponibile, null = nessuna foto adatta */
+  async function aiPick(v){
+    const q = queryFor(v); if (!q) return null;
+    try {
+      const d = await callFn(FN_FOTO, { action:'pick', q, vino: [v.cantina, v.nome, v.annata].filter(Boolean).join(' ') });
+      return d.result || null;
+    } catch(e){ console.warn('pick', e); return undefined; }
+  }
+  async function aiPhoto(target){
+    if (target === 'form'){
+      const v = { nome: $('#fNome').value.trim(), cantina: $('#fCantina').value.trim(), annata: $('#fAnnata').value.trim() };
+      if (!v.nome && !v.cantina){ toast('Scrivi prima nome o cantina'); return; }
+      toast("L'IA sta scegliendo la foto…", 15000);
+      const r = await aiPick(v);
+      if (!r){ toast(r === null ? 'Nessuna foto adatta trovata: prova con Online' : 'IA non disponibile, prova con Online', 3600); return; }
+      if (F.preview) URL.revokeObjectURL(F.preview);
+      F.blob = null; F.preview = null; F.web = r; paintForm();
+      toast('Foto scelta 🍷');
+      return;
+    }
+    const v = vini.find(x => x.id === detailId); if (!v) return;
+    toast("L'IA sta scegliendo la foto…", 15000);
+    try {
+      const r = await aiPick(v);
+      if (!r){ toast(r === null ? 'Nessuna foto adatta trovata: prova con Online' : 'IA non disponibile, prova con Online', 3600); return; }
+      const up = await webSave(r);
+      const { error } = await sb.from(TABLE).update({ foto_url: up.url, foto_path: up.path, foto_auto: true }).eq('id', v.id);
+      if (error){ removePhoto(up.path); throw error; }
+      if (v.foto_path) removePhoto(v.foto_path);
+      toast('Foto aggiornata 🍷');
+      await load(); renderDetail();
+    } catch(e){ console.error(e); toast('Errore: ' + (e.message || e)); }
+  }
+
   async function autoPhoto(id){
     const v = vini.find(x => x.id === id);
     if (!v || v.foto_url) return false;
     const q = queryFor(v); if (!q) return false;
-    const pick = bestPick(await webSearch(q));
+    let pick = await aiPick(v);   // NUOVO · l'IA sceglie bottiglia intera su sfondo bianco
+    if (pick === undefined) pick = bestPick(await webSearch(q));   // riserva se l'IA non risponde
     if (!pick) return false;
     const up = await webSave(pick);
     const { error } = await sb.from(TABLE).update({ foto_url: up.url, foto_path: up.path, foto_auto: true }).eq('id', id);
